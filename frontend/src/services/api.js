@@ -2,8 +2,10 @@ import axios from 'axios';
 import store from '../store';
 import { clearCredentials, setCredentials } from '../store/authSlice';
 
+const API_BASE_URL = 'http://54.234.20.250:5050';
+
 const api = axios.create({
-  baseURL: '', // Handled by Vite local server proxy configuration
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -65,7 +67,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post('/api/auth/token/refresh', { refreshToken });
+        const res = await axios.post(`${API_BASE_URL}/api/auth/token/refresh`, { refreshToken });
         if (res.data.success) {
           const newAccessToken = res.data.accessToken;
           const user = JSON.parse(localStorage.getItem('user'));
