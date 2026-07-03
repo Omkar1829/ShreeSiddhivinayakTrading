@@ -22,6 +22,17 @@ const broadcast = (event, data) => {
   });
 };
 
+// Heartbeat ping every 30 seconds to prevent connection drops by proxies/gateways
+setInterval(() => {
+  clients.forEach((c) => {
+    try {
+      c.write(':ping\n\n');
+    } catch (err) {
+      // Client likely disconnected; cleanup will handle on close
+    }
+  });
+}, 30000);
+
 module.exports = {
   addClient,
   removeClient,

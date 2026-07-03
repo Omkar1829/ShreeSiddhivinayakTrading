@@ -86,17 +86,38 @@ export default function AdminOrders() {
     loadOrdersData(true);
 
     const baseUrl = import.meta.env.VITE_API_URL || 'http://54.234.20.250:5000';
-    const eventSource = new EventSource(`${baseUrl}/api/store/events`);
+    let eventSource = null;
+    let pollInterval = null;
 
     const handleRealtimeEvent = () => {
       loadOrdersData(false);
     };
 
-    eventSource.addEventListener('ORDER_PLACED', handleRealtimeEvent);
-    eventSource.addEventListener('ORDER_UPDATED', handleRealtimeEvent);
+    try {
+      eventSource = new EventSource(`${baseUrl}/api/store/events`);
+
+      eventSource.addEventListener('ORDER_PLACED', handleRealtimeEvent);
+      eventSource.addEventListener('ORDER_UPDATED', handleRealtimeEvent);
+
+      eventSource.onerror = (err) => {
+        console.warn('[AdminOrders] SSE connection error, falling back to 10s polling:', err);
+        eventSource.close();
+        if (!pollInterval) {
+          pollInterval = setInterval(() => {
+            loadOrdersData(false);
+          }, 10000);
+        }
+      };
+    } catch (err) {
+      console.warn('[AdminOrders] SSE initialization failed, falling back to 10s polling:', err);
+      pollInterval = setInterval(() => {
+        loadOrdersData(false);
+      }, 10000);
+    }
 
     return () => {
-      eventSource.close();
+      if (eventSource) eventSource.close();
+      if (pollInterval) clearInterval(pollInterval);
     };
   }, [isAuthenticated, user, navigate]);
 
