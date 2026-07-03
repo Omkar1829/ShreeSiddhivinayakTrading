@@ -41,6 +41,20 @@ export default function AdminDashboard() {
       return;
     }
     loadDashboardData(true);
+
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://54.234.20.250:5000';
+    const eventSource = new EventSource(`${baseUrl}/api/store/events`);
+
+    const handleRealtimeEvent = () => {
+      loadDashboardData(false);
+    };
+
+    eventSource.addEventListener('ORDER_PLACED', handleRealtimeEvent);
+    eventSource.addEventListener('ORDER_UPDATED', handleRealtimeEvent);
+
+    return () => {
+      eventSource.close();
+    };
   }, [isAuthenticated, user, navigate]);
 
   // Mock charts trend data derived from daily figures

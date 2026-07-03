@@ -9,9 +9,11 @@ const multer = require('multer');
 const { logAudit } = require('../utils/auditLogger');
 const { sendTwilioMessage } = require('../utils/twilio');
 const { sendTwoFactorOtp, verifyTwoFactorOtp } = require('../utils/twoFactor');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 const upload = multer();
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_siddhivinayak_jwt_access_secret';
 
 // Verification codes cache (in-memory for MVP development)
 const otpCache = new Map();
@@ -39,6 +41,11 @@ const profileUpdateSchema = yup.object().shape({
   name: yup.string().nullable().min(2, 'Name must be at least 2 characters.')
 });
 
+const registerSchema = yup.object().shape({
+  registrationToken: yup.string().required('Registration token is required.'),
+  name: yup.string().required('Name is required.').min(2, 'Name must be at least 2 characters.')
+});
+
 // ----------------------------------------------------
 // Endpoints
 // ----------------------------------------------------
@@ -52,12 +59,25 @@ router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
   // Format phone number to clean representation (ensure prefix)
   const formattedPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
 
+  // Check if user is already registered
+  const user = await prisma.user.findUnique({
+    where: { phone: formattedPhone }
+  });
+  const isNewUser = !user;
+
   let otpCode = '123456';
   let sessionId = null;
+  
+  // Admin bypass list (rider number 9632587410 is NOT included here)
+  const bypassNumbers = ['+919876543210', '9876543210'];
+  const isBypass = bypassNumbers.includes(phone) || bypassNumbers.includes(formattedPhone);
+
   const has2Factor = !!process.env.TWOFACTOR_API_KEY;
   const hasTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 
-  if (has2Factor) {
+  if (isBypass) {
+    console.log(`[OTP Bypass] Bypass active for ${formattedPhone}. Using mock OTP 123456.`);
+  } else if (has2Factor) {
     try {
       sessionId = await sendTwoFactorOtp(formattedPhone);
     } catch (err) {
@@ -85,9 +105,12 @@ router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
 
   return res.json({
     success: true,
-    message: (has2Factor || hasTwilio)
-      ? 'Verification code sent successfully.' 
-      : 'Verification code generated successfully (mock mode: 123456).'
+    isNewUser,
+    message: isBypass
+      ? 'Verification code generated successfully (bypass mode: 123456).'
+      : (has2Factor || hasTwilio)
+        ? 'Verification code sent successfully.' 
+        : 'Verification code generated successfully (mock mode: 123456).'
   });
 });
 
@@ -146,23 +169,31 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
       where: { phone: formattedPhone }
     });
 
-    let isNewUser = false;
+    const bypassAdmins = ['+919876543210'];
+    const shouldBeAdmin = bypassAdmins.includes(formattedPhone);
+
     if (!user) {
-      isNewUser = true;
-      user = await prisma.user.create({
-        data: {
-          phone: formattedPhone,
-          name: formattedPhone.substring(3), // Default name to last digits of phone
-          isAdmin: false
-        }
+      // Sign a temporary registration token (expires in 10 minutes)
+      const registrationToken = jwt.sign(
+        { phone: formattedPhone },
+        JWT_SECRET,
+        { expiresIn: '10m' }
+      );
+      return res.json({
+        success: true,
+        isNewUser: true,
+        registrationToken
       });
-      
-      // Audit log new user creation
-      await logAudit(null, {
-        tableName: 'users',
-        recordId: user.id,
-        action: 'INSERT',
-        newValues: user
+    }
+
+    // Proactively promote to admin if not set
+    if (shouldBeAdmin && (!user.isAdmin || user.role !== 'ADMIN')) {
+      user = await prisma.user.update({
+        where: { phone: formattedPhone },
+        data: {
+          isAdmin: true,
+          role: 'ADMIN'
+        }
       });
     }
 
@@ -172,9 +203,9 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
 
     return res.json({
       success: true,
+      isNewUser: false,
       accessToken,
       refreshToken,
-      isNewUser,
       user: {
         id: user.id,
         phone: user.phone,
@@ -189,6 +220,77 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to process login request.' }
+    });
+  }
+});
+
+/**
+ * Complete registration for new users with a name
+ */
+router.post('/register', validate(registerSchema), async (req, res) => {
+  const { registrationToken, name } = req.body;
+
+  try {
+    const decoded = jwt.verify(registrationToken, JWT_SECRET);
+    const phone = decoded.phone;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Registration token is invalid.' }
+      });
+    }
+
+    // Double check if user was created in the meantime
+    let user = await prisma.user.findUnique({ where: { phone } });
+    if (user) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'USER_ALREADY_EXISTS', message: 'User is already registered. Please log in.' }
+      });
+    }
+
+    const bypassAdmins = ['+919876543210'];
+    const shouldBeAdmin = bypassAdmins.includes(phone);
+
+    user = await prisma.user.create({
+      data: {
+        phone,
+        name: name.trim(),
+        isAdmin: shouldBeAdmin,
+        role: shouldBeAdmin ? 'ADMIN' : 'CUSTOMER'
+      }
+    });
+
+    // Audit log new user creation
+    await logAudit(null, {
+      tableName: 'users',
+      recordId: user.id,
+      action: 'INSERT',
+      newValues: user
+    });
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    return res.json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        isAdmin: user.isAdmin,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error('Registration error:', err);
+    return res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_TOKEN', message: 'Registration token has expired or is invalid.' }
     });
   }
 });

@@ -9,7 +9,9 @@ export default function LoginModal({ isOpen, onClose }) {
   const { loading, error } = useSelector((state) => state.auth);
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [step, setStep] = useState(1); // 1 = Phone, 2 = OTP
+  const [name, setName] = useState('');
+  const [registrationToken, setRegistrationToken] = useState('');
+  const [step, setStep] = useState(1); // 1 = Phone, 2 = OTP, 3 = Name (registration)
   const [message, setMessage] = useState('');
 
   if (!isOpen) return null;
@@ -51,6 +53,47 @@ export default function LoginModal({ isOpen, onClose }) {
     try {
       const res = await api.post('/api/auth/otp/verify', { phone, code });
       if (res.data.success) {
+        if (res.data.isNewUser) {
+          setRegistrationToken(res.data.registrationToken);
+          setStep(3);
+        } else {
+          dispatch(setCredentials({
+            accessToken: res.data.accessToken,
+            refreshToken: res.data.refreshToken,
+            user: res.data.user
+          }));
+          onClose();
+          // Reset state
+          setPhone('');
+          setCode('');
+          setName('');
+          setRegistrationToken('');
+          setStep(1);
+        }
+      }
+    } catch (err) {
+      dispatch(setAuthError(err.response?.data?.error?.message || err.message || 'Incorrect verification code.'));
+    } finally {
+      dispatch(setAuthLoading(false));
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!name || name.trim().length < 2) {
+      dispatch(setAuthError('Please enter your name (at least 2 characters).'));
+      return;
+    }
+
+    dispatch(setAuthLoading(true));
+    dispatch(setAuthError(null));
+
+    try {
+      const res = await api.post('/api/auth/register', {
+        registrationToken,
+        name: name.trim()
+      });
+      if (res.data.success) {
         dispatch(setCredentials({
           accessToken: res.data.accessToken,
           refreshToken: res.data.refreshToken,
@@ -60,10 +103,12 @@ export default function LoginModal({ isOpen, onClose }) {
         // Reset state
         setPhone('');
         setCode('');
+        setName('');
+        setRegistrationToken('');
         setStep(1);
       }
     } catch (err) {
-      dispatch(setAuthError(err.message || 'Incorrect verification code.'));
+      dispatch(setAuthError(err.response?.data?.error?.message || err.message || 'Failed to complete registration.'));
     } finally {
       dispatch(setAuthLoading(false));
     }
@@ -72,6 +117,8 @@ export default function LoginModal({ isOpen, onClose }) {
   const handleBack = () => {
     setStep(1);
     setCode('');
+    setName('');
+    setRegistrationToken('');
     dispatch(setAuthError(null));
     setMessage('');
   };
@@ -112,7 +159,7 @@ export default function LoginModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {step === 1 ? (
+          {step === 1 && (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
@@ -143,7 +190,9 @@ export default function LoginModal({ isOpen, onClose }) {
                 Get OTP Code
               </button>
             </form>
-          ) : (
+          )}
+
+          {step === 2 && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
@@ -166,7 +215,7 @@ export default function LoginModal({ isOpen, onClose }) {
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent-600 py-3 px-4 text-base font-bold text-white hover:bg-accent-700 transition shadow-md disabled:bg-gray-300"
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : <ShieldCheck size={18} />}
-                Confirm & Log In
+                Verify OTP & Log In
               </button>
 
               <div className="flex items-center justify-between mt-4">
@@ -183,6 +232,46 @@ export default function LoginModal({ isOpen, onClose }) {
                   className="text-xs font-semibold text-primary-800 hover:underline transition"
                 >
                   Resend OTP
+                </button>
+              </div>
+            </form>
+          )}
+
+          {step === 3 && (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 text-left">
+                  Your Full Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 py-3 px-4 text-gray-900 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 text-base"
+                  required
+                />
+                <p className="text-[10px] text-gray-400 mt-1.5 text-left font-medium">
+                  We noticed you are signing up for the first time! Please provide your name to complete registration.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-800 py-3 px-4 text-base font-bold text-white hover:bg-primary-900 transition shadow-md disabled:bg-gray-300"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <ShieldCheck size={18} />}
+                Complete Registration
+              </button>
+
+              <div className="flex items-center justify-start mt-4">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="text-xs font-semibold text-gray-500 hover:text-primary-800 transition"
+                >
+                  ← Start Over
                 </button>
               </div>
             </form>

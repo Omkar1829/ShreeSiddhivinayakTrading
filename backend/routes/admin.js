@@ -306,6 +306,13 @@ router.patch('/orders/:id/status', validate(statusUpdateSchema), async (req, res
       userId: req.user.id
     });
 
+    try {
+      const { broadcast } = require('../utils/eventHub');
+      broadcast('ORDER_UPDATED', { orderId: id, status });
+    } catch (err) {
+      console.error('[EventHub Error] Failed to broadcast ORDER_UPDATED:', err.message);
+    }
+
     return res.json({
       success: true,
       order: updatedOrder
@@ -377,6 +384,13 @@ router.patch('/orders/:id/assign-delivery', validate(deliveryAssignSchema), asyn
       newValues: updatedOrder,
       userId: req.user.id
     });
+
+    try {
+      const { broadcast } = require('../utils/eventHub');
+      broadcast('ORDER_UPDATED', { orderId: id, riderId: deliveryRiderId });
+    } catch (err) {
+      console.error('[EventHub Error] Failed to broadcast ORDER_UPDATED:', err.message);
+    }
 
     return res.json({
       success: true,

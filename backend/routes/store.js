@@ -4,6 +4,7 @@ const prisma = require('../config/prisma');
 const validate = require('../middleware/validate');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { logAudit } = require('../utils/auditLogger');
+const { addClient, removeClient } = require('../utils/eventHub');
 
 const router = express.Router();
 
@@ -23,6 +24,23 @@ const storeSettingsUpdateSchema = yup.object().shape({
 // ----------------------------------------------------
 // Public Endpoints
 // ----------------------------------------------------
+
+/**
+ * SSE Endpoint: Real-time store event notifications (Orders, assignments, dispatches)
+ */
+router.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*'); // support cross-origin SSE connections
+  res.flushHeaders();
+
+  addClient(res);
+
+  req.on('close', () => {
+    removeClient(res);
+  });
+});
 
 /**
  * Get all public store configurations

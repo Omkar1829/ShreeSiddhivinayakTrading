@@ -98,6 +98,13 @@ router.post('/verify', async (req, res) => {
       userId: null
     });
 
+    try {
+      const { broadcast } = require('../utils/eventHub');
+      broadcast('ORDER_UPDATED', { orderId: orderId, status: 'DELIVERED' });
+    } catch (err) {
+      console.error('[EventHub Error] Failed to broadcast ORDER_UPDATED:', err.message);
+    }
+
     return res.json({
       success: true,
       message: 'Delivery verified successfully via QR scan.',
@@ -279,6 +286,13 @@ router.post('/orders/:id/verify-otp', authenticateToken, requireDelivery, async 
       userId: req.user.id
     });
 
+    try {
+      const { broadcast } = require('../utils/eventHub');
+      broadcast('ORDER_UPDATED', { orderId: id, status: 'DELIVERED' });
+    } catch (err) {
+      console.error('[EventHub Error] Failed to broadcast ORDER_UPDATED:', err.message);
+    }
+
     return res.json({
       success: true,
       message: 'Delivery verified successfully via OTP entry.',
@@ -353,6 +367,13 @@ router.post('/scan-pickup', authenticateToken, requireDelivery, async (req, res)
       newValues: updatedOrder,
       userId: req.user.id
     });
+
+    try {
+      const { broadcast } = require('../utils/eventHub');
+      broadcast('ORDER_UPDATED', { orderId, status: 'OUT_FOR_DELIVERY', riderId: req.user.id });
+    } catch (err) {
+      console.error('[EventHub Error] Failed to broadcast ORDER_UPDATED:', err.message);
+    }
 
     return res.json({
       success: true,

@@ -39,8 +39,8 @@ export default function AdminOrders() {
     }
   }, [location]);
 
-  const loadOrdersData = async () => {
-    setLoading(true);
+  const loadOrdersData = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const ordersRes = await api.get('/api/admin/orders');
       const prodRes = await api.get('/api/products/admin/all');
@@ -83,7 +83,21 @@ export default function AdminOrders() {
       navigate('/');
       return;
     }
-    loadOrdersData();
+    loadOrdersData(true);
+
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://54.234.20.250:5000';
+    const eventSource = new EventSource(`${baseUrl}/api/store/events`);
+
+    const handleRealtimeEvent = () => {
+      loadOrdersData(false);
+    };
+
+    eventSource.addEventListener('ORDER_PLACED', handleRealtimeEvent);
+    eventSource.addEventListener('ORDER_UPDATED', handleRealtimeEvent);
+
+    return () => {
+      eventSource.close();
+    };
   }, [isAuthenticated, user, navigate]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {

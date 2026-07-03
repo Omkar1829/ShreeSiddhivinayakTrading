@@ -266,6 +266,13 @@ router.post('/', validate(orderSchema), async (req, res) => {
       userId
     });
 
+    try {
+      const { broadcast } = require('../utils/eventHub');
+      broadcast('ORDER_PLACED', { orderId: newOrder.id, orderNumber: newOrder.orderNumber });
+    } catch (err) {
+      console.error('[EventHub Error] Failed to broadcast ORDER_PLACED:', err.message);
+    }
+
     return res.status(201).json({
       success: true,
       order: newOrder

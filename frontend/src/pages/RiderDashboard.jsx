@@ -40,6 +40,8 @@ export default function RiderDashboard() {
   const [scannerError, setScannerError] = useState('');
   const qrRegionId = "rider-qr-reader";
   const scannerRef = useRef(null);
+  const scannerModeRef = useRef(null);
+  const codPaymentModeRef = useRef(null);
 
   // OTP Modal state
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -70,7 +72,21 @@ export default function RiderDashboard() {
       navigate('/');
       return;
     }
-    loadRiderOrders();
+    loadRiderOrders(false);
+
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://54.234.20.250:5000';
+    const eventSource = new EventSource(`${baseUrl}/api/store/events`);
+
+    const handleRealtimeEvent = () => {
+      loadRiderOrders(true);
+    };
+
+    eventSource.addEventListener('ORDER_PLACED', handleRealtimeEvent);
+    eventSource.addEventListener('ORDER_UPDATED', handleRealtimeEvent);
+
+    return () => {
+      eventSource.close();
+    };
   }, [isAuthenticated, user, navigate]);
 
   const handleLogout = () => {
@@ -112,6 +128,8 @@ export default function RiderDashboard() {
 
   // Start QR camera scanner
   const startCameraScanner = async (mode, order = null, selectedPaymentMode = null) => {
+    scannerModeRef.current = mode;
+    codPaymentModeRef.current = selectedPaymentMode;
     setScannerMode(mode);
     setActiveScanOrder(order);
     setCodPaymentMode(selectedPaymentMode);
@@ -157,21 +175,24 @@ export default function RiderDashboard() {
     setLoading(true);
 
     try {
-      if (scannerMode === 'PICKUP') {
+      const currentMode = scannerModeRef.current;
+      const currentCodPaymentMode = codPaymentModeRef.current;
+
+      if (currentMode === 'PICKUP') {
         const orderId = decodedText.trim();
         const res = await api.post('/api/delivery/scan-pickup', { orderId });
         if (res.data.success) {
           alert('Pickup registered successfully via scanner!');
           loadRiderOrders(true);
         }
-      } else if (scannerMode === 'DELIVERY') {
+      } else if (currentMode === 'DELIVERY') {
         let token = decodedText;
         if (decodedText.includes('token=')) {
           const urlObj = new URL(decodedText);
           token = urlObj.searchParams.get('token');
         }
 
-        const res = await api.post('/api/delivery/verify', { token, codPaymentMode });
+        const res = await api.post('/api/delivery/verify', { token, codPaymentMode: currentCodPaymentMode });
         if (res.data.success) {
           alert(`Delivery confirmed for Order ${res.data.orderNumber}!`);
           loadRiderOrders(true);

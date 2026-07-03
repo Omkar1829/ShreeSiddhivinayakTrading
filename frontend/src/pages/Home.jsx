@@ -59,11 +59,11 @@ export default function Home() {
             <Award size={13} /> Trusted Neighborhood Kirana Since 2007
           </span>
           <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Premium Groceries Delivered <br />
-            <span className="text-accent-400">Doorstep Free in Panvel</span>
+            Everyday Essentials. Exceptional Quality. <br />
+            <span className="text-accent-400">Delivered Fresh. Delivered Free across panvel.</span>
           </h1>
-          <p className="mx-auto max-w-lg text-sm sm:text-base text-primary-100 font-medium">
-            Browse fresh dairy, pantry staples, household detergents, and quality pulses from top brands like Amul, Tata, and Fortune.
+          <p className="mx-auto max-w-xl text-sm sm:text-base text-primary-100 font-medium">
+            From premium rice and pulses to cooking oils, and household essentials, enjoy trusted brands and dependable service—all in one place.
           </p>
 
           {/* Search Box */}
