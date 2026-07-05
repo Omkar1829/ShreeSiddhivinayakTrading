@@ -209,8 +209,10 @@ export default function RiderDashboard() {
       } else if (currentMode === 'DELIVERY') {
         let token = decodedText;
         if (decodedText.includes('token=')) {
-          const urlObj = new URL(decodedText);
-          token = urlObj.searchParams.get('token');
+          const match = decodedText.match(/[?&]token=([^&]+)/);
+          if (match) {
+            token = decodeURIComponent(match[1]);
+          }
         }
 
         const res = await api.post('/api/delivery/verify', { token, codPaymentMode: currentCodPaymentMode });

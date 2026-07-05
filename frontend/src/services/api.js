@@ -3,6 +3,7 @@ import store from '../store';
 import { clearCredentials, setCredentials } from '../store/authSlice';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://54.234.20.250:5000';
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

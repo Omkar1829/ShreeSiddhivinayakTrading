@@ -120,8 +120,10 @@ export default function DeliveryScanner() {
       // Decode token from URL query string if URL was scanned
       let token = decodedText;
       if (decodedText.includes('token=')) {
-        const urlObj = new URL(decodedText);
-        token = urlObj.searchParams.get('token');
+        const match = decodedText.match(/[?&]token=([^&]+)/);
+        if (match) {
+          token = decodeURIComponent(match[1]);
+        }
       }
 
       const res = await api.post('/api/delivery/verify', { token });

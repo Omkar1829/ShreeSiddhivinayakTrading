@@ -191,7 +191,7 @@ export default function OrderTracking() {
                 {order.deliveryToken ? (
                   <QRCodeSVG 
                     value={qrVerifyUrl} 
-                    size={160} 
+                    size={260} 
                     level="H" 
                     includeMargin={true}
                   />
