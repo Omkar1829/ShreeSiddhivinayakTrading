@@ -195,26 +195,64 @@ router.get('/dashboard/top-products', async (req, res) => {
  * Admin: Get all orders
  */
 router.get('/orders', async (req, res) => {
-  const { status } = req.query;
+  const { status, search, limit, offset } = req.query;
 
   const filterClause = {};
-  if (status) {
+  if (status === 'ACTIVE') {
+    filterClause.status = {
+      in: ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'OUT_FOR_DELIVERY']
+    };
+  } else if (status && status !== 'ALL') {
     filterClause.status = status;
   }
 
+  if (search) {
+    filterClause.OR = [
+      { id: { contains: search, mode: 'insensitive' } },
+      { orderNumber: { contains: search, mode: 'insensitive' } },
+      { recipientName: { contains: search, mode: 'insensitive' } },
+      { recipientPhone: { contains: search, mode: 'insensitive' } },
+      { paymentMethod: { contains: search, mode: 'insensitive' } },
+      { status: { contains: search, mode: 'insensitive' } },
+      {
+        user: {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search, mode: 'insensitive' } }
+          ]
+        }
+      }
+    ];
+  }
+
   try {
-    const orders = await prisma.order.findMany({
+    const queryOptions = {
       where: filterClause,
       include: {
         items: true,
         user: { select: { phone: true, name: true } }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    };
+
+    if (limit) {
+      queryOptions.take = parseInt(limit);
+    }
+    if (offset) {
+      queryOptions.skip = parseInt(offset);
+    }
+
+    const orders = await prisma.order.findMany(queryOptions);
+    const total = await prisma.order.count({ where: filterClause });
 
     return res.json({
       success: true,
-      orders
+      orders,
+      pagination: {
+        total,
+        limit: limit ? parseInt(limit) : total,
+        offset: offset ? parseInt(offset) : 0
+      }
     });
   } catch (error) {
     console.error('Fetch admin orders error:', error);
@@ -656,9 +694,21 @@ router.get('/audit-logs', async (req, res) => {
  * Admin: Get all customer accounts with order metrics
  */
 router.get('/users', async (req, res) => {
+  const { search, limit, offset } = req.query;
+
+  const filterClause = { isAdmin: false };
+
+  if (search) {
+    filterClause.OR = [
+      { id: { contains: search, mode: 'insensitive' } },
+      { name: { contains: search, mode: 'insensitive' } },
+      { phone: { contains: search, mode: 'insensitive' } }
+    ];
+  }
+
   try {
-    const customers = await prisma.user.findMany({
-      where: { isAdmin: false },
+    const queryOptions = {
+      where: filterClause,
       include: {
         orders: {
           select: {
@@ -669,7 +719,17 @@ router.get('/users', async (req, res) => {
         }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    };
+
+    if (limit) {
+      queryOptions.take = parseInt(limit);
+    }
+    if (offset) {
+      queryOptions.skip = parseInt(offset);
+    }
+
+    const customers = await prisma.user.findMany(queryOptions);
+    const total = await prisma.user.count({ where: filterClause });
 
     const formatted = customers.map(u => {
       const successfulOrders = u.orders.filter(o => o.status === 'DELIVERED');
@@ -678,7 +738,7 @@ router.get('/users', async (req, res) => {
         id: u.id,
         name: u.name || 'Unnamed Customer',
         phone: u.phone,
-        status: u.status,
+        status: u.status || 'ACTIVE',
         createdAt: u.createdAt,
         ordersCount: u.orders.length,
         totalSpend
@@ -687,7 +747,12 @@ router.get('/users', async (req, res) => {
 
     return res.json({
       success: true,
-      customers: formatted
+      customers: formatted,
+      pagination: {
+        total,
+        limit: limit ? parseInt(limit) : total,
+        offset: offset ? parseInt(offset) : 0
+      }
     });
   } catch (error) {
     console.error('Fetch customers error:', error);

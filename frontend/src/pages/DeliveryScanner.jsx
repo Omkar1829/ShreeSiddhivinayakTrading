@@ -6,6 +6,9 @@ import { Camera, CheckCircle, AlertOctagon, RotateCcw, Loader2 } from 'lucide-re
 export default function DeliveryScanner() {
   const qrRegionId = "delivery-qr-reader";
   const scannerRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const initializingRef = useRef(false);
+
   const [scanResult, setScanResult] = useState(null); // 'SUCCESS' | 'ERROR' | null
   const [errorMessage, setErrorMessage] = useState('');
   const [successDetails, setSuccessDetails] = useState(null);
@@ -13,47 +16,97 @@ export default function DeliveryScanner() {
   const [scannerActive, setScannerActive] = useState(false);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     // Start scanner on load if not already verified
     if (!scanResult && !verifying) {
       startScanner();
     }
 
     return () => {
+      isMountedRef.current = false;
       stopScanner();
     };
   }, [scanResult, verifying]);
 
   const startScanner = async () => {
+    if (initializingRef.current || (scannerRef.current && scannerRef.current.isScanning)) {
+      return;
+    }
+    initializingRef.current = true;
+
     try {
-      // Small timeout to ensure element is in DOM
+      // Ensure element exists in DOM before starting
       setTimeout(async () => {
-        const html5QrcodeScanner = new Html5Qrcode(qrRegionId);
-        scannerRef.current = html5QrcodeScanner;
+        if (!isMountedRef.current) {
+          initializingRef.current = false;
+          return;
+        }
 
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        // Clean up any existing instances first to be safe
+        if (scannerRef.current) {
+          try {
+            if (scannerRef.current.isScanning) {
+              await scannerRef.current.stop();
+            }
+          } catch (e) {
+            console.warn("Error stopping scanner during reset:", e);
+          }
+          scannerRef.current = null;
+        }
 
-        await html5QrcodeScanner.start(
-          { facingMode: "environment" },
-          config,
-          handleScanSuccess,
-          handleScanError
-        );
-        setScannerActive(true);
-        setErrorMessage('');
-      }, 300);
+        const container = document.getElementById(qrRegionId);
+        if (!container) {
+          initializingRef.current = false;
+          return;
+        }
+
+        try {
+          const html5QrcodeScanner = new Html5Qrcode(qrRegionId);
+          scannerRef.current = html5QrcodeScanner;
+
+          const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+          await html5QrcodeScanner.start(
+            { facingMode: "environment" },
+            config,
+            handleScanSuccess,
+            handleScanError
+          );
+
+          if (isMountedRef.current) {
+            setScannerActive(true);
+            setErrorMessage('');
+          } else {
+            // Unmounted while starting
+            await html5QrcodeScanner.stop();
+          }
+        } catch (err) {
+          console.error('Scanner start error:', err);
+          if (isMountedRef.current) {
+            setErrorMessage('Failed to access rear camera. Please ensure camera permissions are allowed.');
+          }
+        } finally {
+          initializingRef.current = false;
+        }
+      }, 100);
     } catch (err) {
-      console.error('Scanner init error:', err);
-      setErrorMessage('Failed to access rear camera. Please ensure camera permissions are allowed.');
+      console.error('Scanner init wrapper error:', err);
+      initializingRef.current = false;
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      try {
-        await scannerRef.current.stop();
-        setScannerActive(false);
-      } catch (err) {
-        console.error('Failed to stop scanner:', err);
+    if (scannerRef.current) {
+      const scanner = scannerRef.current;
+      scannerRef.current = null; // Clear reference immediately to prevent multiple parallel stops
+      if (scanner.isScanning) {
+        try {
+          await scanner.stop();
+          setScannerActive(false);
+        } catch (err) {
+          console.error('Failed to stop scanner:', err);
+        }
       }
     }
   };

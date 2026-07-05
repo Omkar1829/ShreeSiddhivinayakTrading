@@ -3,7 +3,8 @@ import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
-import { Loader2, ArrowLeft, RefreshCw, ClipboardList, MapPin, Truck, ChevronDown, Check, X, ShieldAlert } from 'lucide-react';
+import { downloadInvoicePdf } from '../utils/invoice';
+import { Loader2, ArrowLeft, RefreshCw, ClipboardList, MapPin, Truck, ChevronDown, Check, X, ShieldAlert, Search } from 'lucide-react';
 
 export default function AdminOrders() {
   const navigate = useNavigate();
@@ -32,6 +33,21 @@ export default function AdminOrders() {
   // Collapsed order ID details view state
   const [selectedOrderId, setSelectedOrderId] = useState('');
 
+  // Search and pagination state
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const [totalOrders, setTotalOrders] = useState(0);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset page to 1 on new search
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   useEffect(() => {
     if (location.state?.openPOS) {
       setIsManualOrderOpen(true);
@@ -39,14 +55,22 @@ export default function AdminOrders() {
     }
   }, [location]);
 
-  const loadOrdersData = async (showLoader = true) => {
+  const loadOrdersData = async (showLoader = true, searchStr = debouncedSearch, pageNum = page) => {
     if (showLoader) setLoading(true);
     try {
-      const ordersRes = await api.get('/api/admin/orders');
+      const offset = (pageNum - 1) * limit;
+      const ordersRes = await api.get(`/api/admin/orders?status=${activeTab}&search=${encodeURIComponent(searchStr)}&limit=${limit}&offset=${offset}`);
       const prodRes = await api.get('/api/products/admin/all');
       const teamRes = await api.get('/api/admin/team');
 
-      if (ordersRes.data.success) setOrders(ordersRes.data.orders);
+      if (ordersRes.data.success) {
+        setOrders(ordersRes.data.orders);
+        if (ordersRes.data.pagination) {
+          setTotalOrders(ordersRes.data.pagination.total);
+        } else {
+          setTotalOrders(ordersRes.data.orders.length);
+        }
+      }
       if (teamRes.data.success) {
         const activeRiders = teamRes.data.team.filter(t => t.role === 'DELIVERY');
         setRiders(activeRiders);
@@ -78,19 +102,25 @@ export default function AdminOrders() {
     }
   };
 
+  // Effect to load data on filters change
+  useEffect(() => {
+    if (isAuthenticated && user?.isAdmin) {
+      loadOrdersData(true, debouncedSearch, page);
+    }
+  }, [isAuthenticated, user, activeTab, debouncedSearch, page]);
+
   useEffect(() => {
     if (!isAuthenticated || !user?.isAdmin) {
       navigate('/');
       return;
     }
-    loadOrdersData(true);
 
     const baseUrl = import.meta.env.VITE_API_URL || 'http://54.234.20.250:5000';
     let eventSource = null;
     let pollInterval = null;
 
     const handleRealtimeEvent = () => {
-      loadOrdersData(false);
+      loadOrdersData(false, debouncedSearch, page);
     };
 
     try {
@@ -104,14 +134,14 @@ export default function AdminOrders() {
         eventSource.close();
         if (!pollInterval) {
           pollInterval = setInterval(() => {
-            loadOrdersData(false);
+            loadOrdersData(false, debouncedSearch, page);
           }, 10000);
         }
       };
     } catch (err) {
       console.warn('[AdminOrders] SSE initialization failed, falling back to 10s polling:', err);
       pollInterval = setInterval(() => {
-        loadOrdersData(false);
+        loadOrdersData(false, debouncedSearch, page);
       }, 10000);
     }
 
@@ -119,7 +149,7 @@ export default function AdminOrders() {
       if (eventSource) eventSource.close();
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, debouncedSearch, page]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     if (!window.confirm(`Advance order status to ${newStatus}?`)) return;
@@ -195,11 +225,7 @@ export default function AdminOrders() {
   };
 
   // Filter list
-  const filteredOrders = orders.filter(order => {
-    if (activeTab === 'ALL') return true;
-    if (activeTab === 'ACTIVE') return ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'OUT_FOR_DELIVERY'].includes(order.status);
-    return order.status === activeTab;
-  });
+  const filteredOrders = orders;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -254,17 +280,32 @@ export default function AdminOrders() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap border-b border-gray-150 gap-1 sm:gap-2">
-        {['ALL', 'ACTIVE', 'PENDING', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3 py-2 text-xs font-bold border-b-2 transition ${activeTab === tab ? 'border-primary-800 text-primary-800' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
-          >
-            {tab.replace(/_/g, ' ')}
-          </button>
-        ))}
+      {/* Search and Tabs Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Tabs */}
+        <div className="flex flex-wrap border-b border-gray-150 gap-1 sm:gap-2 flex-1">
+          {['ALL', 'ACTIVE', 'PENDING', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-2 text-xs font-bold border-b-2 transition ${activeTab === tab ? 'border-primary-800 text-primary-800' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            >
+              {tab.replace(/_/g, ' ')}
+            </button>
+          ))}
+        </div>
+
+        {/* Search input */}
+        <div className="relative max-w-xs w-full">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search orders..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-gray-250 py-2 pl-9 pr-4 text-xs text-gray-950 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 shadow-sm"
+          />
+        </div>
       </div>
 
       {/* Orders list table */}
@@ -363,7 +404,15 @@ export default function AdminOrders() {
                       
                       {/* Products detail items */}
                       <div className="md:col-span-1 space-y-2">
-                        <span className="text-[10px] text-gray-400 uppercase font-black block border-b border-gray-200 pb-1">Items Summary</span>
+                        <div className="flex justify-between items-center border-b border-gray-200 pb-1">
+                          <span className="text-[10px] text-gray-400 uppercase font-black block">Items Summary</span>
+                          <button
+                            onClick={() => downloadInvoicePdf(order)}
+                            className="text-[10px] text-primary-800 hover:underline font-bold"
+                          >
+                            Print Invoice/Bill
+                          </button>
+                        </div>
                         <div className="space-y-1.5 divide-y divide-gray-150">
                           {order.items?.map(item => (
                             <div key={item.id} className="flex justify-between pt-1.5">
@@ -420,6 +469,29 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalOrders > limit && (
+        <div className="flex items-center justify-between border border-gray-100 rounded-2xl bg-white p-4 shadow-sm">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+          >
+            ← Previous
+          </button>
+          <span className="text-xs font-semibold text-gray-500">
+            Page {page} of {Math.ceil(totalOrders / limit)}
+          </span>
+          <button
+            disabled={page * limit >= totalOrders}
+            onClick={() => setPage(page + 1)}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+          >
+            Next →
+          </button>
+        </div>
+      )}
 
       {/* Dispatch Rider Modal */}
       {assigningOrder && (
