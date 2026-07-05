@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart } from '../store/cartSlice';
 import api from '../services/api';
+import { downloadInvoicePdf } from '../utils/invoice';
 import { ShoppingBag, ChevronRight, Loader2, Calendar, ClipboardCheck } from 'lucide-react';
 
 export default function Orders() {
@@ -67,6 +68,17 @@ export default function Orders() {
       }
     } catch (err) {
       alert('Failed to reorder items. Some variants may no longer be available.');
+    }
+  };
+
+  const handleDownloadInvoice = async (orderId) => {
+    try {
+      const res = await api.get(`/api/orders/${orderId}`);
+      if (res.data.success) {
+        downloadInvoicePdf(res.data.order);
+      }
+    } catch (err) {
+      alert('Failed to load invoice details.');
     }
   };
 
@@ -150,18 +162,24 @@ export default function Orders() {
               </div>
 
               <div className="flex gap-2.5 w-full sm:w-auto mt-2 sm:mt-0">
+                <button
+                  onClick={() => handleDownloadInvoice(order.id)}
+                  className="flex-1 sm:flex-none text-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
+                >
+                  Print Bill
+                </button>
                 <Link
                   to={`/orders/${order.id}`}
-                  className="flex-1 sm:flex-none text-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
+                  className="flex-1 sm:flex-none text-center rounded-xl bg-primary-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-900 transition shadow-md"
                 >
                   Track Order
                 </Link>
                 {activeTab === 'past' && (
                   <button
                     onClick={() => handleReorder(order.id)}
-                    className="flex-1 sm:flex-none rounded-xl bg-primary-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-900 transition shadow-md"
+                    className="flex-1 sm:flex-none rounded-xl bg-indigo-750 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-855 transition shadow-md"
                   >
-                    Reorder Items
+                    Reorder
                   </button>
                 )}
               </div>

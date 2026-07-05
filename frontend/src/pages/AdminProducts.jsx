@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, ArrowLeft, Search, Upload, Download, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export default function AdminProducts() {
   const navigate = useNavigate();
@@ -46,14 +46,50 @@ export default function AdminProducts() {
   const [varStock, setVarStock] = useState('');
   const [varStatus, setVarStatus] = useState('ACTIVE');
 
-  const loadData = async () => {
-    setLoading(true);
+  // Search, Pagination, Filter states
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
+
+  // Category Creation Modal state
+  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // CSV Import state
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvErrors, setCsvErrors] = useState([]);
+  const [csvSummary, setCsvSummary] = useState(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const loadData = async (showLoader = true, searchStr = debouncedSearch, pageNum = page, catF = categoryFilter, brandF = brandFilter) => {
+    if (showLoader) setLoading(true);
     try {
-      const prodRes = await api.get('/api/products/admin/all');
+      const offset = (pageNum - 1) * limit;
+      const prodRes = await api.get(`/api/products/admin/all?search=${encodeURIComponent(searchStr)}&limit=${limit}&offset=${offset}&categoryId=${catF}&brandId=${brandF}`);
       const catRes = await api.get('/api/categories/admin/all');
       const brandRes = await api.get('/api/brands/admin/all');
 
-      if (prodRes.data.success) setProducts(prodRes.data.products);
+      if (prodRes.data.success) {
+        setProducts(prodRes.data.products);
+        if (prodRes.data.pagination) {
+          setTotalProducts(prodRes.data.pagination.total);
+        } else {
+          setTotalProducts(prodRes.data.products.length);
+        }
+      }
       if (catRes.data.success) setCategories(catRes.data.categories);
       if (brandRes.data.success) setBrands(brandRes.data.brands);
     } catch (err) {
@@ -64,12 +100,76 @@ export default function AdminProducts() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated || !user?.isAdmin) {
-      navigate('/');
+    if (isAuthenticated && user?.isAdmin) {
+      loadData(true, debouncedSearch, page, categoryFilter, brandFilter);
+    }
+  }, [isAuthenticated, user, debouncedSearch, page, categoryFilter, brandFilter]);
+
+  const handleCategoryCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    try {
+      const res = await api.post('/api/categories', { name: newCategoryName, status: 'ACTIVE' });
+      if (res.data.success) {
+        await loadData(false);
+        setProdCat(res.data.category.id);
+        setIsNewCategoryModalOpen(false);
+        setNewCategoryName('');
+      }
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to create category.');
+    }
+  };
+
+  const downloadDummyCsv = () => {
+    const csvContent = "Product Name,Description,Category,Brand,SKU,Price,Sale Price,Stock,Weight,Variant Name,Variant Value,Image URL\n" +
+      "Tata Dal Premium,High protein unpolished pigeon peas,Groceries,Tata,TATA-DAL-1KG,180.00,,50,1 Kg,Weight,1 Kg,https://picsum.photos/200\n" +
+      "Tata Dal Premium,High protein unpolished pigeon peas,Groceries,Tata,TATA-DAL-2KG,350.00,,30,2 Kg,Weight,2 Kg,https://picsum.photos/200\n" +
+      "Amul Gold Fresh Milk,Full cream fresh dairy milk,Dairy,Amul,AMUL-GOLD-1L,66.00,,100,1 L,Volume,1 L,https://picsum.photos/200";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "siddhivinayak_products_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCsvUploadSubmit = async (e) => {
+    e.preventDefault();
+    if (!csvFile) {
+      alert('Please select a CSV file first.');
       return;
     }
-    loadData();
-  }, [isAuthenticated, user, navigate]);
+
+    setCsvUploading(true);
+    setCsvErrors([]);
+    setCsvSummary(null);
+
+    const formData = new FormData();
+    formData.append('file', csvFile);
+
+    try {
+      const res = await api.post('/api/products/admin/import-csv', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data.success) {
+        setCsvSummary(res.data.summary);
+        setCsvFile(null);
+        await loadData(false);
+      } else {
+        setCsvSummary(res.data.summary);
+        setCsvErrors(res.data.errors || []);
+      }
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to import CSV.');
+    } finally {
+      setCsvUploading(false);
+    }
+  };
 
   const handleProductSubmit = async (e) => {
     e.preventDefault();
@@ -217,12 +317,68 @@ export default function AdminProducts() {
             <p className="text-xs text-gray-500 mt-1">Configure products, variants, brands, and categories.</p>
           </div>
         </div>
-        <button
-          onClick={() => setIsProductModalOpen(true)}
-          className="flex items-center gap-1 rounded-xl bg-primary-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-900 transition shadow-sm"
-        >
-          <Plus size={16} /> Add Product
-        </button>
+        
+        <div className="flex gap-2.5">
+          <button
+            onClick={() => setIsCsvModalOpen(true)}
+            className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
+          >
+            <Upload size={14} /> Import CSV
+          </button>
+          <button
+            onClick={() => setIsProductModalOpen(true)}
+            className="flex items-center gap-1 rounded-xl bg-primary-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-900 transition shadow-sm"
+          >
+            <Plus size={16} /> Add Product
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filters Bar */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center flex-1">
+          {/* Search bar */}
+          <div className="relative max-w-xs w-full">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search products, SKUs, brand..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-gray-250 py-2 pl-9 pr-4 text-xs text-gray-950 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 shadow-sm"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-xl border border-gray-250 bg-white px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none"
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+
+          {/* Brand Filter */}
+          <select
+            value={brandFilter}
+            onChange={(e) => {
+              setBrandFilter(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-xl border border-gray-250 bg-white px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none"
+          >
+            <option value="">All Brands</option>
+            {brands.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Products table */}
@@ -298,6 +454,29 @@ export default function AdminProducts() {
         </div>
       </div>
 
+      {/* Pagination Controls */}
+      {totalProducts > limit && (
+        <div className="flex items-center justify-between border border-gray-100 rounded-2xl bg-white p-4 shadow-sm">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+          >
+            ← Previous
+          </button>
+          <span className="text-xs font-semibold text-gray-500">
+            Page {page} of {Math.ceil(totalProducts / limit)}
+          </span>
+          <button
+            disabled={page * limit >= totalProducts}
+            onClick={() => setPage(page + 1)}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+          >
+            Next →
+          </button>
+        </div>
+      )}
+
       {/* Product Add/Edit Modal */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -354,7 +533,16 @@ export default function AdminProducts() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Category</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] text-gray-450 uppercase">Category</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsNewCategoryModalOpen(true)}
+                      className="text-[9px] text-primary-855 font-bold hover:underline"
+                    >
+                      + Create New
+                    </button>
+                  </div>
                   <select
                     value={prodCat}
                     onChange={(e) => {
@@ -524,6 +712,155 @@ export default function AdminProducts() {
                 >
                   {formSubmitting && <Loader2 className="animate-spin" size={12} />}
                   Add Option
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Creation Modal */}
+      {isNewCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
+            <h3 className="text-sm font-black text-gray-900">Create New Category</h3>
+            <form onSubmit={handleCategoryCreateSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] text-gray-400 uppercase mb-1 font-bold">Category Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Beverages, Spices"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="w-full rounded-xl border border-gray-250 p-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsNewCategoryModalOpen(false)}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary-800 px-4 py-2 text-xs font-bold text-white hover:bg-primary-900"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Modal */}
+      {isCsvModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <h3 className="text-base font-black text-gray-900 flex items-center gap-1.5">
+                <Upload size={18} className="text-primary-805" /> Import Catalog CSV
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCsvModalOpen(false);
+                  setCsvFile(null);
+                  setCsvErrors([]);
+                  setCsvSummary(null);
+                }}
+                className="text-gray-400 hover:text-gray-750"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleCsvUploadSubmit} className="space-y-4">
+              <div className="rounded-xl bg-gray-50 p-4 border border-gray-100 flex flex-col gap-2.5">
+                <p className="text-xs text-gray-500 leading-relaxed font-semibold">
+                  Select a product catalog CSV file. If you do not have one, download our template dummy file first.
+                </p>
+                <button
+                  type="button"
+                  onClick={downloadDummyCsv}
+                  className="w-full rounded-xl border border-gray-250 bg-white py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-1"
+                >
+                  <Download size={14} /> Download Template CSV
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-400 uppercase mb-1 font-bold">Select CSV File</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  required
+                  onChange={(e) => setCsvFile(e.target.files[0])}
+                  className="w-full text-xs text-gray-400 file:mr-3 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-800"
+                />
+              </div>
+
+              {csvUploading && (
+                <div className="flex items-center gap-2 justify-center py-2 text-xs font-bold text-primary-800">
+                  <Loader2 className="animate-spin" size={16} /> Parsing rows and uploading images...
+                </div>
+              )}
+
+              {/* Import Summary */}
+              {csvSummary && (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 space-y-2 text-xs font-semibold text-emerald-800">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle size={16} className="text-emerald-600" />
+                    <h4 className="font-bold text-emerald-900">Import Summary Completed</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                    <div>Total Rows: <span className="font-extrabold text-gray-900">{csvSummary.totalRows}</span></div>
+                    <div>Failed Rows: <span className="font-extrabold text-gray-900">{csvSummary.failedRowsCount}</span></div>
+                    <div>Products Created: <span className="font-extrabold text-gray-900">{csvSummary.importedProducts}</span></div>
+                    <div>Variants Created: <span className="font-extrabold text-gray-900">{csvSummary.importedVariants}</span></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Validation errors */}
+              {csvErrors.length > 0 && (
+                <div className="rounded-xl bg-red-50 border border-red-100 p-4 space-y-2 text-xs font-semibold text-red-800">
+                  <div className="flex items-center gap-1">
+                    <AlertTriangle size={16} className="text-red-650" />
+                    <h4 className="font-bold text-red-900">Import Validation Errors ({csvErrors.length})</h4>
+                  </div>
+                  <div className="max-h-45 overflow-y-auto space-y-1.5 divide-y divide-red-100 text-[10px] leading-relaxed pt-1">
+                    {csvErrors.map((err, idx) => (
+                      <div key={idx} className="pt-1">
+                        Row {err.row}: <span className="text-red-650 font-bold">{err.error}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCsvModalOpen(false);
+                    setCsvFile(null);
+                    setCsvErrors([]);
+                    setCsvSummary(null);
+                  }}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={csvUploading}
+                  className="rounded-xl bg-primary-800 px-4 py-2 text-xs font-bold text-white hover:bg-primary-900 disabled:opacity-50"
+                >
+                  Start Import
                 </button>
               </div>
             </form>
