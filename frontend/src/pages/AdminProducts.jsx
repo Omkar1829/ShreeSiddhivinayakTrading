@@ -63,6 +63,29 @@ export default function AdminProducts() {
   const [isNewSubcategoryModalOpen, setIsNewSubcategoryModalOpen] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
 
+  // Brand Creation Modal state
+  const [isNewBrandModalOpen, setIsNewBrandModalOpen] = useState(false);
+  const [newBrandName, setNewBrandName] = useState('');
+
+  // Inline variants for ADD product form
+  const [tempVariants, setTempVariants] = useState([
+    { id: 'initial-1', attributeName: 'Weight', attributeValue: '', price: '', stock: '', status: 'ACTIVE' }
+  ]);
+
+  // Inline variant edit states (for existing variants in EDIT mode)
+  const [editingVariantId, setEditingVariantId] = useState('');
+  const [editVarAttr, setEditVarAttr] = useState('Weight');
+  const [editVarVal, setEditVarVal] = useState('');
+  const [editVarPrice, setEditVarPrice] = useState('');
+  const [editVarStock, setEditVarStock] = useState('');
+  const [editVarStatus, setEditVarStatus] = useState('ACTIVE');
+
+  // Inline new variant fields for EDIT mode
+  const [newVarAttr, setNewVarAttr] = useState('Weight');
+  const [newVarVal, setNewVarVal] = useState('');
+  const [newVarPrice, setNewVarPrice] = useState('');
+  const [newVarStock, setNewVarStock] = useState('');
+
   // CSV Import state
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
@@ -141,6 +164,97 @@ export default function AdminProducts() {
     }
   };
 
+  const handleBrandCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!newBrandName.trim()) return;
+    try {
+      const res = await api.post('/api/brands', { name: newBrandName, status: 'ACTIVE' });
+      if (res.data.success) {
+        await loadData(false);
+        setProdBrand(res.data.brand.id);
+        setIsNewBrandModalOpen(false);
+        setNewBrandName('');
+      }
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to create brand.');
+    }
+  };
+
+  const handleInlineAddVariant = async (e) => {
+    e.preventDefault();
+    if (!newVarVal.trim() || !newVarPrice || !newVarStock) {
+      alert('Please fill out all variant fields.');
+      return;
+    }
+    try {
+      const payload = {
+        attributeName: newVarAttr,
+        attributeValue: newVarVal,
+        price: parseFloat(newVarPrice),
+        stock: parseInt(newVarStock),
+        status: 'ACTIVE'
+      };
+      const res = await api.post(`/api/products/${editingProduct.id}/variants`, payload);
+      if (res.data.success) {
+        // Reset inputs
+        setNewVarVal('');
+        setNewVarPrice('');
+        setNewVarStock('');
+        // Refresh data
+        const prodRes = await api.get(`/api/products/admin/all?search=${encodeURIComponent(debouncedSearch)}&limit=${limit}&offset=${(page - 1) * limit}&categoryId=${categoryFilter}&brandId=${brandFilter}`);
+        if (prodRes.data.success) {
+          setProducts(prodRes.data.products);
+          const updatedP = prodRes.data.products.find(p => p.id === editingProduct.id);
+          if (updatedP) setEditingProduct(updatedP);
+        }
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to add variant.');
+    }
+  };
+
+  const handleInlineUpdateVariant = async (vId) => {
+    try {
+      const res = await api.put(`/api/products/variants/${vId}`, {
+        attributeName: editVarAttr,
+        attributeValue: editVarVal,
+        price: parseFloat(editVarPrice),
+        stock: parseInt(editVarStock),
+        status: editVarStatus
+      });
+      if (res.data.success) {
+        setEditingVariantId('');
+        // Refresh data
+        const prodRes = await api.get(`/api/products/admin/all?search=${encodeURIComponent(debouncedSearch)}&limit=${limit}&offset=${(page - 1) * limit}&categoryId=${categoryFilter}&brandId=${brandFilter}`);
+        if (prodRes.data.success) {
+          setProducts(prodRes.data.products);
+          const updatedP = prodRes.data.products.find(p => p.id === editingProduct.id);
+          if (updatedP) setEditingProduct(updatedP);
+        }
+      }
+    } catch (err) {
+      alert(err.message || 'Variant update failed.');
+    }
+  };
+
+  const handleInlineDeleteVariant = async (vId) => {
+    if (!window.confirm('Delete this variant option?')) return;
+    try {
+      const res = await api.delete(`/api/products/variants/${vId}`);
+      if (res.data.success) {
+        // Refresh data
+        const prodRes = await api.get(`/api/products/admin/all?search=${encodeURIComponent(debouncedSearch)}&limit=${limit}&offset=${(page - 1) * limit}&categoryId=${categoryFilter}&brandId=${brandFilter}`);
+        if (prodRes.data.success) {
+          setProducts(prodRes.data.products);
+          const updatedP = prodRes.data.products.find(p => p.id === editingProduct.id);
+          if (updatedP) setEditingProduct(updatedP);
+        }
+      }
+    } catch (err) {
+      alert(err.message || 'Delete failed.');
+    }
+  };
+
   const downloadDummyCsv = () => {
     const csvContent = "Product Name,Description,Category,Brand,SKU,Price,Sale Price,Stock,Weight,Variant Name,Variant Value,Image URL\n" +
       "Tata Dal Premium,High protein unpolished pigeon peas,Groceries,Tata,TATA-DAL-1KG,180.00,,50,1 Kg,Weight,1 Kg,https://picsum.photos/200\n" +
@@ -205,6 +319,9 @@ export default function AdminProducts() {
     formData.append('status', prodStatus);
     if (prodImage) {
       formData.append('image', prodImage);
+    }
+    if (!editingProduct) {
+      formData.append('variants', JSON.stringify(tempVariants));
     }
 
     try {
@@ -295,6 +412,13 @@ export default function AdminProducts() {
     setProdBrand('');
     setProdStatus('ACTIVE');
     setProdImage(null);
+    setTempVariants([
+      { id: 'initial-1', attributeName: 'Weight', attributeValue: '', price: '', stock: '', status: 'ACTIVE' }
+    ]);
+    setEditingVariantId('');
+    setNewVarVal('');
+    setNewVarPrice('');
+    setNewVarStock('');
     setIsProductModalOpen(false);
   };
 
@@ -448,12 +572,6 @@ export default function AdminProducts() {
                   <td className="p-4">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        onClick={() => openVariantModal(prod.id)}
-                        className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[10px] font-bold text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        + Variant
-                      </button>
-                      <button
                         onClick={() => openProductModalForEdit(prod)}
                         className="rounded-lg p-1.5 text-gray-400 hover:text-primary-850 hover:bg-primary-50 transition"
                       >
@@ -599,7 +717,16 @@ export default function AdminProducts() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Brand</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] text-gray-450 uppercase">Brand</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsNewBrandModalOpen(true)}
+                      className="text-[9px] text-primary-855 font-bold hover:underline"
+                    >
+                      + Create New
+                    </button>
+                  </div>
                   <select
                     value={prodBrand}
                     onChange={(e) => setProdBrand(e.target.value)}
@@ -632,6 +759,319 @@ export default function AdminProducts() {
                     <option value="INACTIVE">INACTIVE</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Variant Options Section */}
+              <div className="border-t border-gray-150 pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Variant Options</h4>
+                  {!editingProduct && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempVariants([
+                          ...tempVariants,
+                          { id: Math.random().toString(), attributeName: 'Weight', attributeValue: '', price: '', stock: '', status: 'ACTIVE' }
+                        ]);
+                      }}
+                      className="rounded-lg bg-primary-50 px-2.5 py-1.5 text-[10px] font-bold text-primary-800 hover:bg-primary-100 transition"
+                    >
+                      + Add Variant Option
+                    </button>
+                  )}
+                </div>
+
+                {/* 1. Add Product Mode: Render tempVariants */}
+                {!editingProduct && (
+                  <div className="space-y-3">
+                    {tempVariants.map((v, index) => (
+                      <div key={v.id} className="grid grid-cols-5 gap-2 items-center bg-gray-50 p-2.5 rounded-xl border border-gray-150">
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Attribute</label>
+                          <select
+                            value={v.attributeName}
+                            onChange={(e) => {
+                              const updated = [...tempVariants];
+                              updated[index].attributeName = e.target.value;
+                              setTempVariants(updated);
+                            }}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                          >
+                            <option value="Weight">Weight</option>
+                            <option value="Volume">Volume</option>
+                            <option value="Pack">Pack</option>
+                            <option value="Size">Size</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Value *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 500g, 1L"
+                            value={v.attributeValue}
+                            onChange={(e) => {
+                              const updated = [...tempVariants];
+                              updated[index].attributeValue = e.target.value;
+                              setTempVariants(updated);
+                            }}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Price *</label>
+                          <input
+                            type="number"
+                            required
+                            step="0.01"
+                            placeholder="Price"
+                            value={v.price}
+                            onChange={(e) => {
+                              const updated = [...tempVariants];
+                              updated[index].price = e.target.value;
+                              setTempVariants(updated);
+                            }}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Stock *</label>
+                          <input
+                            type="number"
+                            required
+                            placeholder="Stock"
+                            value={v.stock}
+                            onChange={(e) => {
+                              const updated = [...tempVariants];
+                              updated[index].stock = e.target.value;
+                              setTempVariants(updated);
+                            }}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                          />
+                        </div>
+                        <div className="flex items-end justify-between gap-1 h-full pt-4">
+                          <div className="flex-1">
+                            <select
+                              value={v.status}
+                              onChange={(e) => {
+                                const updated = [...tempVariants];
+                                updated[index].status = e.target.value;
+                                setTempVariants(updated);
+                              }}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                            >
+                              <option value="ACTIVE">ACTIVE</option>
+                              <option value="INACTIVE">INACTIVE</option>
+                            </select>
+                          </div>
+                          {tempVariants.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTempVariants(tempVariants.filter(item => item.id !== v.id));
+                              }}
+                              className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 transition"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 2. Edit Product Mode: Render existing variants and inline add row */}
+                {editingProduct && (
+                  <div className="space-y-3">
+                    {/* Existing saved variants */}
+                    <div className="border border-gray-150 rounded-2xl overflow-hidden bg-white max-h-[220px] overflow-y-auto">
+                      <table className="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-100 text-gray-450 uppercase font-black tracking-wider">
+                            <th className="p-2.5">Attribute</th>
+                            <th className="p-2.5">Value</th>
+                            <th className="p-2.5">Price</th>
+                            <th className="p-2.5">Stock</th>
+                            <th className="p-2.5">Status</th>
+                            <th className="p-2.5 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(editingProduct.variants || []).map((v) => {
+                            const isEditing = editingVariantId === v.id;
+                            if (isEditing) {
+                              return (
+                                <tr key={v.id} className="border-b border-gray-100 bg-primary-50/10">
+                                  <td className="p-2">
+                                    <select
+                                      value={editVarAttr}
+                                      onChange={(e) => setEditVarAttr(e.target.value)}
+                                      className="rounded-lg border border-gray-200 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                                    >
+                                      <option value="Weight">Weight</option>
+                                      <option value="Volume">Volume</option>
+                                      <option value="Pack">Pack</option>
+                                      <option value="Size">Size</option>
+                                    </select>
+                                  </td>
+                                  <td className="p-2">
+                                    <input
+                                      type="text"
+                                      value={editVarVal}
+                                      onChange={(e) => setEditVarVal(e.target.value)}
+                                      className="rounded-lg border border-gray-200 p-1 w-full text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                                    />
+                                  </td>
+                                  <td className="p-2">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={editVarPrice}
+                                      onChange={(e) => setEditVarPrice(e.target.value)}
+                                      className="rounded-lg border border-gray-200 p-1 w-20 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                                    />
+                                  </td>
+                                  <td className="p-2">
+                                    <input
+                                      type="number"
+                                      value={editVarStock}
+                                      onChange={(e) => setEditVarStock(e.target.value)}
+                                      className="rounded-lg border border-gray-200 p-1 w-16 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                                    />
+                                  </td>
+                                  <td className="p-2">
+                                    <select
+                                      value={editVarStatus}
+                                      onChange={(e) => setEditVarStatus(e.target.value)}
+                                      className="rounded-lg border border-gray-200 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                                    >
+                                      <option value="ACTIVE">ACTIVE</option>
+                                      <option value="INACTIVE">INACTIVE</option>
+                                    </select>
+                                  </td>
+                                  <td className="p-2 text-right space-x-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleInlineUpdateVariant(v.id)}
+                                      className="text-emerald-650 font-black hover:underline"
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingVariantId('')}
+                                      className="text-gray-400 font-bold hover:underline"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return (
+                              <tr key={v.id} className="border-b border-gray-100 text-gray-700 hover:bg-gray-50">
+                                <td className="p-2.5 font-bold text-gray-900">{v.attributeName}</td>
+                                <td className="p-2.5">{v.attributeValue}</td>
+                                <td className="p-2.5 font-bold text-gray-800">₹{parseFloat(v.price).toFixed(2)}</td>
+                                <td className="p-2.5">{v.stock} units</td>
+                                <td className="p-2.5">
+                                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase ${v.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                    {v.status}
+                                  </span>
+                                </td>
+                                <td className="p-2.5 text-right space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingVariantId(v.id);
+                                      setEditVarAttr(v.attributeName);
+                                      setEditVarVal(v.attributeValue);
+                                      setEditVarPrice(v.price);
+                                      setEditVarStock(v.stock);
+                                      setEditVarStatus(v.status);
+                                    }}
+                                    className="text-primary-855 font-bold hover:underline"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleInlineDeleteVariant(v.id)}
+                                    className="text-red-500 font-bold hover:underline"
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Inline Form to add variant to existing product */}
+                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-150 space-y-2.5">
+                      <span className="block text-[10px] text-gray-450 uppercase font-black">Add Variant Option</span>
+                      <div className="grid grid-cols-4 gap-2 items-center">
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Attribute</label>
+                          <select
+                            value={newVarAttr}
+                            onChange={(e) => setNewVarAttr(e.target.value)}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                          >
+                            <option value="Weight">Weight</option>
+                            <option value="Volume">Volume</option>
+                            <option value="Pack">Pack</option>
+                            <option value="Size">Size</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Value *</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 5kg, 2L"
+                            value={newVarVal}
+                            onChange={(e) => setNewVarVal(e.target.value)}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Price *</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="Price"
+                            value={newVarPrice}
+                            onChange={(e) => setNewVarPrice(e.target.value)}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Stock *</label>
+                          <input
+                            type="number"
+                            placeholder="Stock"
+                            value={newVarStock}
+                            onChange={(e) => setNewVarStock(e.target.value)}
+                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handleInlineAddVariant}
+                          className="rounded-lg bg-primary-800 px-3.5 py-1.5 text-[10px] font-extrabold text-white hover:bg-primary-900 transition shadow-sm"
+                        >
+                          + Save Variant Option
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-gray-100 pt-4 flex gap-2 justify-end shrink-0">
@@ -808,6 +1248,43 @@ export default function AdminProducts() {
                 <button
                   type="button"
                   onClick={() => setIsNewSubcategoryModalOpen(false)}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary-800 px-4 py-2 text-xs font-bold text-white hover:bg-primary-900"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Brand Creation Modal */}
+      {isNewBrandModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
+            <h3 className="text-sm font-black text-gray-900">Create New Brand</h3>
+            <form onSubmit={handleBrandCreateSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] text-gray-400 uppercase mb-1 font-bold">Brand Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Tata, Amul, Wow"
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                  className="w-full rounded-xl border border-gray-250 p-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsNewBrandModalOpen(false)}
                   className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
