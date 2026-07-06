@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Loader2, ArrowLeft, RefreshCw, History, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw, History, AlertTriangle, Search } from 'lucide-react';
 
 export default function AdminInventory() {
   const navigate = useNavigate();
@@ -12,6 +12,11 @@ export default function AdminInventory() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('levels'); // 'levels' or 'history'
+
+  // Search and Filter states
+  const [search, setSearch] = useState('');
+  const [stockStatus, setStockStatus] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
 
   // Stock Adjustment Drawer
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -89,20 +94,45 @@ export default function AdminInventory() {
     );
   }
 
-  // Flatten products list into array of variants
+  // Flatten products list into array of variants with search & filters applied
   const variantsList = products.reduce((acc, prod) => {
     if (prod.variants) {
       prod.variants.forEach(v => {
+        // Apply category filter
+        if (categoryFilter !== 'ALL' && prod.category?.name !== categoryFilter) {
+          return;
+        }
+
+        const sku = prod.sku || v.id.slice(0, 8).toUpperCase();
+        const productName = prod.name;
+
+        // Apply search keyword filter
+        if (search.trim()) {
+          const s = search.toLowerCase();
+          const matchesSearch = productName.toLowerCase().includes(s) || sku.toLowerCase().includes(s);
+          if (!matchesSearch) return;
+        }
+
+        // Apply stock status filter
+        if (stockStatus !== 'ALL') {
+          if (stockStatus === 'IN_STOCK' && v.stock <= 5) return;
+          if (stockStatus === 'LOW_STOCK' && (v.stock === 0 || v.stock > 5)) return;
+          if (stockStatus === 'OUT_OF_STOCK' && v.stock > 0) return;
+        }
+
         acc.push({
           ...v,
-          productName: prod.name,
+          productName,
           imageUrl: prod.imageUrl,
-          sku: prod.sku || v.id.slice(0, 8).toUpperCase()
+          sku,
+          categoryName: prod.category?.name || 'Uncategorized'
         });
       });
     }
     return acc;
   }, []);
+
+  const uniqueCategories = Array.from(new Set(products.map(p => p.category?.name).filter(Boolean)));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -141,6 +171,48 @@ export default function AdminInventory() {
           <History className="inline mr-1" size={16} /> Transaction History ({transactions.length})
         </button>
       </div>
+
+      {activeTab === 'levels' && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex flex-wrap gap-3 items-center flex-1">
+            {/* Search input */}
+            <div className="relative max-w-xs w-full">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or SKU..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl border border-gray-250 py-2 pl-9 pr-4 text-xs text-gray-955 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 shadow-sm"
+              />
+            </div>
+
+            {/* Category Filter */}
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-xl border border-gray-250 bg-white px-3 py-2 text-xs font-semibold text-gray-750 focus:outline-none"
+            >
+              <option value="ALL">All Categories</option>
+              {uniqueCategories.map((cat, idx) => (
+                <option key={idx} value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            {/* Stock Status Filter */}
+            <select
+              value={stockStatus}
+              onChange={(e) => setStockStatus(e.target.value)}
+              className="rounded-xl border border-gray-250 bg-white px-3 py-2 text-xs font-semibold text-gray-750 focus:outline-none"
+            >
+              <option value="ALL">All Stock Statuses</option>
+              <option value="IN_STOCK">In Stock (&gt; 5 units)</option>
+              <option value="LOW_STOCK">Low Stock (1 - 5 units)</option>
+              <option value="OUT_OF_STOCK">Out of Stock (0 units)</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'levels' ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

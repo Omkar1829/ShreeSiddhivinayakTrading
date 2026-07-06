@@ -41,9 +41,9 @@ export default function Footer() {
                   Uran Naka, Panvel – 410206, Maharashtra
                 </span>
               </li>
-              <li className="rounded-lg bg-emerald-950 px-3 py-1.5 inline-block text-[11px] font-bold text-emerald-400 border border-emerald-900">
+              {/*<li className="rounded-lg bg-emerald-950 px-3 py-1.5 inline-block text-[11px] font-bold text-emerald-400 border border-emerald-900">
                 ⚡ Free Doorstep Delivery across Panvel (MVP Scope)
-              </li>
+              </li>*/}
             </ul>
           </div>
 

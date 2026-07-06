@@ -13,7 +13,10 @@ const initialState = {
     search: '',
     category: '',
     subcategory: '',
-    brand: ''
+    brand: '',
+    minPrice: '',
+    maxPrice: '',
+    inStock: ''
   },
   loading: false,
   error: null

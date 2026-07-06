@@ -235,18 +235,18 @@ export default function Home() {
           <div className="flex items-start gap-4 p-5 rounded-2xl bg-gray-50 border border-gray-100">
             <ShieldCheck size={36} className="text-primary-800 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-sm text-gray-900">Freshness & Quality Guaranteed</h4>
+              <h4 className="font-bold text-sm text-gray-900">Only the Finest, Every Time</h4>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                We select and pack only premium brands and fresh dairy products, maintaining strict hygiene standards.
+                We source from trusted brands and maintain the highest standards of freshness, hygiene, and quality.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4 p-5 rounded-2xl bg-gray-50 border border-gray-100">
             <Award size={36} className="text-primary-800 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-sm text-gray-900">Neighborhood Trust Since 2007</h4>
+              <h4 className="font-bold text-sm text-gray-900">A Legacy of Trust Since 2007</h4>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Serving Uran Naka & Krishna Tower community for nearly two decades with consistent transparent pricing.
+                Serving generations of families with honest pricing, dependable service, and uncompromising quality across navi mumbai.
               </p>
             </div>
           </div>
@@ -257,7 +257,7 @@ export default function Home() {
       <section className="mx-auto max-w-3xl px-4 text-center space-y-4">
         <h3 className="text-lg font-bold text-gray-900">Prefer Ordering via Call or WhatsApp?</h3>
         <p className="text-xs text-gray-500">
-          Our working partners Yatish and Manas are available to take manual orders on phone or WhatsApp. Call us or click below to message.
+          Our team is ready to assist you with your orders over the phone. Feel free to contact us for any queries or assistance.
         </p>
         <div className="flex items-center justify-center gap-4">
           <a

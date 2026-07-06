@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { setProducts, setCategories, setBrands, setFilters, setCatalogLoading, setCatalogError } from '../store/catalogSlice';
 import { addToCart, updateQuantity } from '../store/cartSlice';
@@ -19,8 +19,11 @@ export default function Catalog() {
     const category = searchParams.get('category') || '';
     const subcategory = searchParams.get('subcategory') || '';
     const brand = searchParams.get('brand') || '';
+    const minPrice = searchParams.get('minPrice') || '';
+    const maxPrice = searchParams.get('maxPrice') || '';
+    const inStock = searchParams.get('inStock') || '';
 
-    dispatch(setFilters({ search, category, subcategory, brand }));
+    dispatch(setFilters({ search, category, subcategory, brand, minPrice, maxPrice, inStock }));
   }, [searchParams, dispatch]);
 
   // Load products, categories, and brands on filter change
@@ -46,6 +49,9 @@ export default function Catalog() {
         const category = searchParams.get('category') || '';
         const subcategory = searchParams.get('subcategory') || '';
         const brand = searchParams.get('brand') || '';
+        const minPrice = searchParams.get('minPrice') || '';
+        const maxPrice = searchParams.get('maxPrice') || '';
+        const inStock = searchParams.get('inStock') || '';
         const offset = parseInt(searchParams.get('offset')) || 0;
 
         const queryParams = new URLSearchParams();
@@ -53,6 +59,9 @@ export default function Catalog() {
         if (category) queryParams.append('category', category);
         if (subcategory) queryParams.append('subcategory', subcategory);
         if (brand) queryParams.append('brand', brand);
+        if (minPrice) queryParams.append('minPrice', minPrice);
+        if (maxPrice) queryParams.append('maxPrice', maxPrice);
+        if (inStock) queryParams.append('inStock', inStock);
         queryParams.append('limit', pagination.limit);
         queryParams.append('offset', offset);
 
@@ -81,16 +90,31 @@ export default function Catalog() {
     };
   }, [categories.length, brands.length, pagination.limit, searchParams, dispatch]);
 
-  const updateSearchParam = (key, value) => {
+  const updateSearchParam = (keyOrUpdates, value) => {
     const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
+    
+    if (typeof keyOrUpdates === 'string') {
+      const key = keyOrUpdates;
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+      if (key !== 'offset') {
+        newParams.delete('offset');
+      }
     } else {
-      newParams.delete(key);
-    }
-    // Reset offset on filter changes
-    if (key !== 'offset') {
-      newParams.delete('offset');
+      const updates = keyOrUpdates;
+      Object.entries(updates).forEach(([key, val]) => {
+        if (val) {
+          newParams.set(key, val);
+        } else {
+          newParams.delete(key);
+        }
+        if (key !== 'offset') {
+          newParams.delete('offset');
+        }
+      });
     }
     setSearchParams(newParams);
   };
@@ -129,81 +153,99 @@ export default function Catalog() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Top Horizontal Filter Bar */}
+      <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-sm flex flex-wrap gap-4 items-center justify-between mb-8">
+        <div className="flex flex-wrap gap-3 items-center flex-1">
+          {/* Category Dropdown */}
+          <select
+            value={filters.category}
+            onChange={(e) => {
+              updateSearchParam({ category: e.target.value, subcategory: '' });
+            }}
+            className="rounded-xl border border-gray-250 bg-white px-3 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none"
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.slug}>{c.name}</option>
+            ))}
+          </select>
+
+          {/* Subcategory Dropdown */}
+          {filters.category && categories.find(c => c.slug === filters.category)?.subcategories?.length > 0 && (
+            <select
+              value={filters.subcategory}
+              onChange={(e) => updateSearchParam('subcategory', e.target.value)}
+              className="rounded-xl border border-gray-250 bg-white px-3 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none"
+            >
+              <option value="">All Subcategories</option>
+              {categories.find(c => c.slug === filters.category).subcategories.map(sub => (
+                <option key={sub.id} value={sub.slug}>{sub.name}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Brand Dropdown */}
+          <select
+            value={filters.brand}
+            onChange={(e) => updateSearchParam('brand', e.target.value)}
+            className="rounded-xl border border-gray-255 bg-white px-3 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none"
+          >
+            <option value="">All Brands</option>
+            {brands.map(b => (
+              <option key={b.id} value={b.slug}>{b.name}</option>
+            ))}
+          </select>
+
+          {/* Price Range */}
+          <div className="flex items-center gap-1.5 border border-gray-250 rounded-xl px-2.5 py-1.5 bg-white">
+            <span className="text-[10px] text-gray-400 font-bold uppercase">Price:</span>
+            <input
+              type="number"
+              placeholder="Min"
+              value={filters.minPrice}
+              onChange={(e) => updateSearchParam('minPrice', e.target.value)}
+              className="w-14 bg-transparent text-xs font-semibold text-gray-755 focus:outline-none"
+            />
+            <span className="text-gray-300 text-xs">-</span>
+            <input
+              type="number"
+              placeholder="Max"
+              value={filters.maxPrice}
+              onChange={(e) => updateSearchParam('maxPrice', e.target.value)}
+              className="w-14 bg-transparent text-xs font-semibold text-gray-755 focus:outline-none"
+            />
+          </div>
+
+          {/* Availability */}
+          <select
+            value={filters.inStock}
+            onChange={(e) => updateSearchParam('inStock', e.target.value)}
+            className="rounded-xl border border-gray-250 bg-white px-3 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none"
+          >
+            <option value="">All Availability</option>
+            <option value="true">In Stock Only</option>
+          </select>
+        </div>
+
+        {/* Clear Filters Button */}
+        {(filters.category || filters.subcategory || filters.brand || filters.minPrice || filters.maxPrice || filters.inStock) && (
+          <button
+            onClick={() => {
+              const newParams = new URLSearchParams();
+              if (filters.search) newParams.set('search', filters.search);
+              setSearchParams(newParams);
+            }}
+            className="text-xs text-primary-850 hover:underline font-bold"
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-8">
         
-        {/* Left Side Filter Panels (Desktop) */}
-        <aside className="space-y-6 lg:col-span-1">
-          {/* Categories list */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1">
-              <Filter size={15} /> Categories
-            </h3>
-            <div className="flex flex-col gap-1.5 text-sm font-medium">
-              <button
-                onClick={() => updateSearchParam('category', '')}
-                className={`text-left px-3 py-2 rounded-xl transition ${!filters.category ? 'bg-primary-50 text-primary-800 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
-              >
-                All Categories
-              </button>
-              {categories.map((cat) => (
-                <div key={cat.id} className="space-y-1">
-                  <button
-                    onClick={() => updateSearchParam('category', cat.slug)}
-                    className={`w-full text-left px-3 py-2 rounded-xl transition ${filters.category === cat.slug ? 'bg-primary-50 text-primary-800 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    {cat.name}
-                  </button>
-                  
-                  {/* Subcategories (only if category is active) */}
-                  {filters.category === cat.slug && cat.subcategories && (
-                    <div className="pl-4 flex flex-col gap-1 border-l border-gray-100 ml-3 py-1">
-                      <button
-                        onClick={() => updateSearchParam('subcategory', '')}
-                        className={`text-left text-xs px-2 py-1 rounded-lg ${!filters.subcategory ? 'text-primary-800 font-bold' : 'text-gray-500 hover:text-gray-900'}`}
-                      >
-                        All {cat.name}
-                      </button>
-                      {cat.subcategories.map(sub => (
-                        <button
-                          key={sub.id}
-                          onClick={() => updateSearchParam('subcategory', sub.slug)}
-                          className={`text-left text-xs px-2 py-1 rounded-lg ${filters.subcategory === sub.slug ? 'text-primary-800 font-bold' : 'text-gray-500 hover:text-gray-900'}`}
-                        >
-                          {sub.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Brands list */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold text-gray-900">Brands</h3>
-            <div className="flex flex-col gap-1.5 text-sm font-medium">
-              <button
-                onClick={() => updateSearchParam('brand', '')}
-                className={`text-left px-3 py-2 rounded-xl transition ${!filters.brand ? 'bg-primary-50 text-primary-800 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
-              >
-                All Brands
-              </button>
-              {brands.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => updateSearchParam('brand', b.slug)}
-                  className={`text-left px-3 py-2 rounded-xl transition ${filters.brand === b.slug ? 'bg-primary-50 text-primary-800 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
-                >
-                  {b.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
-
         {/* Right Side Products Grid */}
-        <main className="lg:col-span-3 space-y-8">
+        <main className="w-full space-y-8">
           {error && (
             <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 text-sm">
               {error}
@@ -211,19 +253,19 @@ export default function Catalog() {
           )}
 
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="skeleton-shimmer h-72 rounded-2xl"></div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="skeleton-shimmer h-72 rounded-2xl animate-pulse bg-gray-100"></div>
               ))}
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-20 bg-white border border-gray-100 rounded-2xl">
               <ShoppingBag size={48} className="mx-auto text-gray-300 mb-3" />
               <h3 className="text-lg font-bold text-gray-900">No products found</h3>
-              <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">Try clearing search parameters or adjusting active category and brand filters.</p>
+              <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">Try clearing search parameters or adjusting active filters.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {products.map((product) => {
                 const defaultVariant = product.variants?.[0];
                 const quantityInCart = defaultVariant ? getCartQuantity(defaultVariant.id) : 0;
@@ -234,7 +276,7 @@ export default function Catalog() {
                     className="flex flex-col bg-white border border-gray-100 rounded-2xl p-3 hover:shadow-xl hover:border-primary-100 transition relative group"
                   >
                     {/* Image */}
-                    <div className="block overflow-hidden rounded-xl bg-gray-50 aspect-square">
+                    <Link to={`/catalog/${product.slug}`} className="block overflow-hidden rounded-xl bg-gray-50 aspect-square group-hover:opacity-90 transition">
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
@@ -246,16 +288,18 @@ export default function Catalog() {
                           {product.name.slice(0, 2)}
                         </div>
                       )}
-                    </div>
+                    </Link>
 
                     {/* Metadata */}
                     <div className="mt-3 flex-1 flex flex-col">
                       <span className="text-[10px] font-bold text-accent-600 uppercase tracking-wider">
                         {product.brand?.name || 'Local'}
                       </span>
-                      <h4 className="font-bold text-xs sm:text-sm text-gray-900 leading-tight line-clamp-2 mt-0.5 min-h-[32px]">
-                        {product.name}
-                      </h4>
+                      <Link to={`/catalog/${product.slug}`} className="block hover:text-primary-800 transition">
+                        <h4 className="font-bold text-xs sm:text-sm text-gray-900 leading-tight line-clamp-2 mt-0.5 min-h-[32px]">
+                          {product.name}
+                        </h4>
+                      </Link>
 
                       {/* Display variants info */}
                       {defaultVariant ? (

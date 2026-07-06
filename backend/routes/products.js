@@ -43,7 +43,7 @@ const variantSchema = yup.object().shape({
  * Get active products list with search and filters (categories, subcategories, brands)
  */
 router.get('/', async (req, res) => {
-  const { search, category, subcategory, brand, limit = 20, offset = 0 } = req.query;
+  const { search, category, subcategory, brand, minPrice, maxPrice, inStock, limit = 20, offset = 0 } = req.query;
 
   const parsedLimit = Math.min(parseInt(limit) || 20, 100);
   const parsedOffset = Math.max(parseInt(offset) || 0, 0);
@@ -63,6 +63,30 @@ router.get('/', async (req, res) => {
 
   if (brand) {
     filterClause.brand = { slug: brand };
+  }
+
+  const variantConditions = {
+    status: 'ACTIVE'
+  };
+
+  let hasVariantFilter = false;
+
+  if (minPrice || maxPrice) {
+    variantConditions.price = {};
+    if (minPrice) variantConditions.price.gte = parseFloat(minPrice);
+    if (maxPrice) variantConditions.price.lte = parseFloat(maxPrice);
+    hasVariantFilter = true;
+  }
+
+  if (inStock === 'true') {
+    variantConditions.stock = { gt: 0 };
+    hasVariantFilter = true;
+  }
+
+  if (hasVariantFilter) {
+    filterClause.variants = {
+      some: variantConditions
+    };
   }
 
   if (search) {
@@ -162,8 +186,41 @@ router.get('/:slug', async (req, res) => {
  * Admin: Get all products (including INACTIVE)
  */
 router.get('/admin/all', authenticateToken, requireAdmin, async (req, res) => {
+  const { search, limit, offset, categoryId, brandId } = req.query;
+
+  const filterClause = {};
+  if (categoryId) {
+    filterClause.categoryId = categoryId;
+  }
+  if (brandId) {
+    filterClause.brandId = brandId;
+  }
+
+  if (search) {
+    filterClause.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { sku: { contains: search, mode: 'insensitive' } },
+      { barcode: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } },
+      { category: { name: { contains: search, mode: 'insensitive' } } },
+      { subcategory: { name: { contains: search, mode: 'insensitive' } } },
+      { brand: { name: { contains: search, mode: 'insensitive' } } },
+      {
+        variants: {
+          some: {
+            OR: [
+              { attributeName: { contains: search, mode: 'insensitive' } },
+              { attributeValue: { contains: search, mode: 'insensitive' } }
+            ]
+          }
+        }
+      }
+    ];
+  }
+
   try {
-    const products = await prisma.product.findMany({
+    const queryOptions = {
+      where: filterClause,
       include: {
         category: true,
         subcategory: true,
@@ -171,11 +228,26 @@ router.get('/admin/all', authenticateToken, requireAdmin, async (req, res) => {
         variants: true
       },
       orderBy: { name: 'asc' }
-    });
+    };
+
+    if (limit) {
+      queryOptions.take = parseInt(limit);
+    }
+    if (offset) {
+      queryOptions.skip = parseInt(offset);
+    }
+
+    const products = await prisma.product.findMany(queryOptions);
+    const total = await prisma.product.count({ where: filterClause });
 
     return res.json({
       success: true,
-      products
+      products,
+      pagination: {
+        total,
+        limit: limit ? parseInt(limit) : total,
+        offset: offset ? parseInt(offset) : 0
+      }
     });
   } catch (error) {
     console.error('Fetch admin products error:', error);
@@ -212,6 +284,15 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), valida
       imageUrl = uploadResult.secure_url;
     }
 
+    let variantsList = [];
+    if (req.body.variants) {
+      try {
+        variantsList = JSON.parse(req.body.variants);
+      } catch (e) {
+        variantsList = [];
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -223,7 +304,21 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), valida
         sku: sku || null,
         barcode: barcode || null,
         imageUrl,
-        status
+        status,
+        variants: {
+          create: variantsList
+            .filter(v => v.attributeValue && !isNaN(parseFloat(v.price)) && !isNaN(parseInt(v.stock)))
+            .map(v => ({
+              attributeName: v.attributeName || 'Weight',
+              attributeValue: v.attributeValue,
+              price: parseFloat(v.price),
+              stock: parseInt(v.stock),
+              status: v.status || 'ACTIVE'
+            }))
+        }
+      },
+      include: {
+        variants: true
       }
     });
 
@@ -563,6 +658,283 @@ router.delete('/variants/:id', authenticateToken, requireAdmin, async (req, res)
       error: { code: 'SERVER_ERROR', message: 'Failed to delete variant.' }
     });
   }
+});
+
+// CSV parser helper function
+function parseCSV(csvText) {
+  const lines = [];
+  let currentLine = [];
+  let currentVal = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentVal += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      currentLine.push(currentVal.trim());
+      currentVal = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      currentLine.push(currentVal.trim());
+      if (currentLine.length > 1 || currentLine[0] !== '') {
+        lines.push(currentLine);
+      }
+      currentLine = [];
+      currentVal = '';
+    } else {
+      currentVal += char;
+    }
+  }
+  if (currentVal || currentLine.length > 0) {
+    currentLine.push(currentVal.trim());
+    lines.push(currentLine);
+  }
+  return lines;
+}
+
+/**
+ * Admin: Bulk import products and variants via CSV
+ */
+router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: { message: 'No CSV file was uploaded.' } });
+  }
+
+  const axios = require('axios');
+  const csvText = req.file.buffer.toString('utf8');
+  let parsedRows;
+  try {
+    parsedRows = parseCSV(csvText);
+  } catch (parseErr) {
+    return res.status(400).json({ success: false, error: { message: 'Failed to parse CSV file format.' } });
+  }
+
+  if (parsedRows.length <= 1) {
+    return res.status(400).json({ success: false, error: { message: 'CSV file must contain a header row and at least one data row.' } });
+  }
+
+  const headerRow = parsedRows[0].map(h => h.toLowerCase().replace(/\s+/g, ''));
+  const dataRows = parsedRows.slice(1);
+
+  const colIndex = (name) => headerRow.indexOf(name);
+  
+  const idxName = colIndex('productname');
+  const idxDesc = colIndex('description');
+  const idxCategory = colIndex('category');
+  const idxBrand = colIndex('brand');
+  const idxSku = colIndex('sku');
+  const idxPrice = colIndex('price');
+  const idxSalePrice = colIndex('saleprice');
+  const idxStock = colIndex('stock');
+  const idxWeight = colIndex('weight');
+  const idxVarName = colIndex('variantname');
+  const idxVarVal = colIndex('variantvalue');
+  const idxImageUrl = colIndex('imageurl');
+
+  if (idxName === -1) {
+    return res.status(400).json({ success: false, error: { message: "CSV is missing the required 'Product Name' header." } });
+  }
+
+  const errors = [];
+  const validRows = [];
+  const seenSkus = new Set();
+  
+  // First pass: validation
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    const rowNum = i + 2;
+
+    if (row.length === 0 || (row.length === 1 && row[0] === '')) {
+      continue;
+    }
+
+    const name = idxName !== -1 ? row[idxName] : '';
+    const sku = idxSku !== -1 ? row[idxSku] : '';
+    const priceStr = idxPrice !== -1 ? row[idxPrice] : '';
+    const stockStr = idxStock !== -1 ? row[idxStock] : '';
+
+    if (!name) {
+      errors.push({ row: rowNum, error: "Missing required field: 'Product Name'" });
+      continue;
+    }
+
+    if (sku) {
+      if (seenSkus.has(sku)) {
+        errors.push({ row: rowNum, error: `Duplicate SKU within CSV file: '${sku}'` });
+        continue;
+      }
+      seenSkus.add(sku);
+
+      const dbProduct = await prisma.product.findUnique({ where: { sku } });
+      if (dbProduct) {
+        errors.push({ row: rowNum, error: `SKU already exists in the database: '${sku}'` });
+        continue;
+      }
+    }
+
+    const price = parseFloat(priceStr);
+    if (isNaN(price) || price < 0) {
+      errors.push({ row: rowNum, error: `Invalid Price value: '${priceStr}'. Must be a number >= 0.` });
+      continue;
+    }
+
+    const stock = parseInt(stockStr);
+    if (isNaN(stock) || stock < 0) {
+      errors.push({ row: rowNum, error: `Invalid Stock value: '${stockStr}'. Must an integer >= 0.` });
+      continue;
+    }
+
+    validRows.push({
+      rowNum,
+      name,
+      description: idxDesc !== -1 ? row[idxDesc] : '',
+      categoryName: idxCategory !== -1 ? row[idxCategory] : '',
+      brandName: idxBrand !== -1 ? row[idxBrand] : '',
+      sku,
+      price,
+      stock,
+      weight: idxWeight !== -1 ? row[idxWeight] : '',
+      variantName: idxVarName !== -1 ? row[idxVarName] : '',
+      variantValue: idxVarVal !== -1 ? row[idxVarVal] : '',
+      imageUrl: idxImageUrl !== -1 ? row[idxImageUrl] : ''
+    });
+  }
+
+  if (errors.length > 0) {
+    return res.json({
+      success: false,
+      summary: {
+        totalRows: dataRows.length,
+        importedProducts: 0,
+        importedVariants: 0,
+        failedRowsCount: errors.length
+      },
+      errors
+    });
+  }
+
+  let importedProductsCount = 0;
+  let importedVariantsCount = 0;
+
+  for (const row of validRows) {
+    try {
+      let uploadedImageUrl = null;
+      if (row.imageUrl) {
+        try {
+          if (row.imageUrl.startsWith('http://') || row.imageUrl.startsWith('https://')) {
+            const imageResponse = await axios.get(row.imageUrl, { responseType: 'arraybuffer' });
+            const imageBuffer = Buffer.from(imageResponse.data, 'binary');
+            const uploadResult = await uploadImage(imageBuffer, 'products');
+            uploadedImageUrl = uploadResult.secure_url;
+          }
+        } catch (imgErr) {
+          console.error(`Failed to fetch/upload image from URL: ${row.imageUrl}`, imgErr.message);
+        }
+      }
+
+      let categoryId = null;
+      if (row.categoryName) {
+        const catSlug = slugify(row.categoryName);
+        const category = await prisma.category.upsert({
+          where: { slug: catSlug },
+          update: {},
+          create: { name: row.categoryName, slug: catSlug }
+        });
+        categoryId = category.id;
+      }
+
+      let brandId = null;
+      if (row.brandName) {
+        const brandSlug = slugify(row.brandName);
+        const brand = await prisma.brand.upsert({
+          where: { slug: brandSlug },
+          update: {},
+          create: { name: row.brandName, slug: brandSlug }
+        });
+        brandId = brand.id;
+      }
+
+      const prodSlug = slugify(row.name);
+      let product = await prisma.product.findUnique({
+        where: { slug: prodSlug }
+      });
+
+      if (!product) {
+        product = await prisma.product.create({
+          data: {
+            name: row.name,
+            slug: prodSlug,
+            description: row.description,
+            sku: row.sku || null,
+            imageUrl: uploadedImageUrl || row.imageUrl || null,
+            categoryId,
+            brandId,
+            status: 'ACTIVE'
+          }
+        });
+        importedProductsCount++;
+      }
+
+      const attributeName = row.variantName || 'Weight';
+      const attributeValue = row.variantValue || row.weight || '1 Kg';
+
+      const existingVariant = await prisma.variant.findFirst({
+        where: {
+          productId: product.id,
+          attributeName,
+          attributeValue
+        }
+      });
+
+      if (!existingVariant) {
+        const createdVar = await prisma.variant.create({
+          data: {
+            productId: product.id,
+            attributeName,
+            attributeValue,
+            price: row.price,
+            stock: row.stock,
+            status: 'ACTIVE'
+          }
+        });
+
+        await prisma.inventoryTransaction.create({
+          data: {
+            variantId: createdVar.id,
+            quantity: row.stock,
+            transactionType: 'STOCK_ADDITION',
+            reason: 'Imported via CSV file bulk upload'
+          }
+        });
+
+        importedVariantsCount++;
+      }
+    } catch (rowErr) {
+      console.error(`Error processing CSV row ${row.rowNum}:`, rowErr);
+      errors.push({ row: row.rowNum, error: `Database error: ${rowErr.message}` });
+    }
+  }
+
+  return res.json({
+    success: errors.length === 0,
+    summary: {
+      totalRows: dataRows.length,
+      importedProducts: importedProductsCount,
+      importedVariants: importedVariantsCount,
+      failedRowsCount: errors.length
+    },
+    errors
+  });
 });
 
 module.exports = router;

@@ -209,8 +209,10 @@ export default function RiderDashboard() {
       } else if (currentMode === 'DELIVERY') {
         let token = decodedText;
         if (decodedText.includes('token=')) {
-          const urlObj = new URL(decodedText);
-          token = urlObj.searchParams.get('token');
+          const match = decodedText.match(/[?&]token=([^&]+)/);
+          if (match) {
+            token = decodeURIComponent(match[1]);
+          }
         }
 
         const res = await api.post('/api/delivery/verify', { token, codPaymentMode: currentCodPaymentMode });
@@ -334,7 +336,7 @@ export default function RiderDashboard() {
         {activeTab === 'pickups' && (
           <button
             onClick={() => startCameraScanner('PICKUP')}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary-850 p-4 text-xs font-bold text-white hover:bg-primary-900 shadow-md transition"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary-850 p-4 text-xs font-bold text-primary-900 hover:bg-primary-900 hover:text-white shadow-md transition"
           >
             <Camera size={18} /> Scan Store Order Slip to Pick Up
           </button>

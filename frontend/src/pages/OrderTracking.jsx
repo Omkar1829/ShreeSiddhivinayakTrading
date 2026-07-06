@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
+import { downloadInvoicePdf } from '../utils/invoice';
 import { ArrowLeft, Phone, MessageSquare, Loader2, Calendar, MapPin, CreditCard, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 export default function OrderTracking() {
@@ -189,9 +190,9 @@ export default function OrderTracking() {
               <div className="bg-white border-4 border-emerald-700 rounded-2xl p-4 shadow-xl">
                 {order.deliveryToken ? (
                   <QRCodeSVG 
-                    value={qrVerifyUrl} 
-                    size={160} 
-                    level="H" 
+                    value={order.deliveryToken || ''} 
+                    size={260} 
+                    level="L" 
                     includeMargin={true}
                   />
                 ) : (
@@ -220,7 +221,15 @@ export default function OrderTracking() {
 
         {/* Order Details Accordion Card */}
         <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm space-y-4">
-          <h3 className="text-base font-bold text-gray-900">Receipt Details</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-base font-bold text-gray-900">Receipt Details</h3>
+            <button
+              onClick={() => downloadInvoicePdf(order)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
+            >
+              Print Invoice
+            </button>
+          </div>
           
           <div className="space-y-4 text-xs font-semibold text-gray-500">
             <div className="flex gap-3">

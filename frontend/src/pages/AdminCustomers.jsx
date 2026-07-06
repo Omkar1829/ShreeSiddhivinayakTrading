@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Loader2, ArrowLeft, Users, RefreshCw } from 'lucide-react';
+import { Loader2, ArrowLeft, Users, RefreshCw, Search } from 'lucide-react';
 
 export default function AdminCustomers() {
   const navigate = useNavigate();
@@ -11,12 +11,33 @@ export default function AdminCustomers() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadCustomers = async () => {
-    setLoading(true);
+  // Search and pagination state
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const [totalCustomers, setTotalCustomers] = useState(0);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset page to 1 on new search
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const loadCustomers = async (showLoader = true, searchStr = debouncedSearch, pageNum = page) => {
+    if (showLoader) setLoading(true);
     try {
-      const res = await api.get('/api/admin/users');
+      const offset = (pageNum - 1) * limit;
+      const res = await api.get(`/api/admin/users?search=${encodeURIComponent(searchStr)}&limit=${limit}&offset=${offset}`);
       if (res.data.success) {
         setCustomers(res.data.customers);
+        if (res.data.pagination) {
+          setTotalCustomers(res.data.pagination.total);
+        } else {
+          setTotalCustomers(res.data.customers.length);
+        }
       }
     } catch (err) {
       console.error('Failed to load customers list:', err);
@@ -30,8 +51,8 @@ export default function AdminCustomers() {
       navigate('/');
       return;
     }
-    loadCustomers();
-  }, [isAuthenticated, user, navigate]);
+    loadCustomers(true, debouncedSearch, page);
+  }, [isAuthenticated, user, navigate, debouncedSearch, page]);
 
   if (loading) {
     return (
@@ -63,6 +84,19 @@ export default function AdminCustomers() {
         >
           <RefreshCw size={14} /> Refresh Directory
         </button>
+      </div>
+
+
+      {/* Search Input bar */}
+      <div className="relative max-w-md w-full">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search customers by name, phone, or ID..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-xl border border-gray-250 py-2.5 pl-9 pr-4 text-xs text-gray-950 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 shadow-sm"
+        />
       </div>
 
       {/* Customer List table */}
@@ -107,6 +141,29 @@ export default function AdminCustomers() {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalCustomers > limit && (
+        <div className="flex items-center justify-between border border-gray-100 rounded-2xl bg-white p-4 shadow-sm">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+          >
+            ← Previous
+          </button>
+          <span className="text-xs font-semibold text-gray-500">
+            Page {page} of {Math.ceil(totalCustomers / limit)}
+          </span>
+          <button
+            disabled={page * limit >= totalCustomers}
+            onClick={() => setPage(page + 1)}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+          >
+            Next →
+          </button>
+        </div>
+      )}
 
     </div>
   );
