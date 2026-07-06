@@ -783,101 +783,103 @@ export default function AdminProducts() {
 
                 {/* 1. Add Product Mode: Render tempVariants */}
                 {!editingProduct && (
-                  <div className="space-y-3">
-                    {tempVariants.map((v, index) => (
-                      <div key={v.id} className="grid grid-cols-5 gap-2 items-center bg-gray-50 p-2.5 rounded-xl border border-gray-150">
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Attribute</label>
-                          <select
-                            value={v.attributeName}
-                            onChange={(e) => {
-                              const updated = [...tempVariants];
-                              updated[index].attributeName = e.target.value;
-                              setTempVariants(updated);
-                            }}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
-                          >
-                            <option value="Weight">Weight</option>
-                            <option value="Volume">Volume</option>
-                            <option value="Pack">Pack</option>
-                            <option value="Size">Size</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Value *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. 500g, 1L"
-                            value={v.attributeValue}
-                            onChange={(e) => {
-                              const updated = [...tempVariants];
-                              updated[index].attributeValue = e.target.value;
-                              setTempVariants(updated);
-                            }}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Price *</label>
-                          <input
-                            type="number"
-                            required
-                            step="0.01"
-                            placeholder="Price"
-                            value={v.price}
-                            onChange={(e) => {
-                              const updated = [...tempVariants];
-                              updated[index].price = e.target.value;
-                              setTempVariants(updated);
-                            }}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Stock *</label>
-                          <input
-                            type="number"
-                            required
-                            placeholder="Stock"
-                            value={v.stock}
-                            onChange={(e) => {
-                              const updated = [...tempVariants];
-                              updated[index].stock = e.target.value;
-                              setTempVariants(updated);
-                            }}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
-                          />
-                        </div>
-                        <div className="flex items-end justify-between gap-1 h-full pt-4">
-                          <div className="flex-1">
+                  <div className="space-y-3 overflow-x-auto pb-2">
+                    <div className="min-w-[600px] space-y-3">
+                      {tempVariants.map((v, index) => (
+                        <div key={v.id} className="grid grid-cols-5 gap-2 items-center bg-gray-50 p-2.5 rounded-xl border border-gray-150">
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Attribute</label>
                             <select
-                              value={v.status}
+                              value={v.attributeName}
                               onChange={(e) => {
                                 const updated = [...tempVariants];
-                                updated[index].status = e.target.value;
+                                updated[index].attributeName = e.target.value;
                                 setTempVariants(updated);
                               }}
                               className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
                             >
-                              <option value="ACTIVE">ACTIVE</option>
-                              <option value="INACTIVE">INACTIVE</option>
+                              <option value="Weight">Weight</option>
+                              <option value="Volume">Volume</option>
+                              <option value="Pack">Pack</option>
+                              <option value="Size">Size</option>
                             </select>
                           </div>
-                          {tempVariants.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setTempVariants(tempVariants.filter(item => item.id !== v.id));
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Value *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 500g, 1L"
+                              value={v.attributeValue}
+                              onChange={(e) => {
+                                const updated = [...tempVariants];
+                                updated[index].attributeValue = e.target.value;
+                                setTempVariants(updated);
                               }}
-                              className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 transition"
-                            >
-                              ✕
-                            </button>
-                          )}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Price *</label>
+                            <input
+                              type="number"
+                              required
+                              step="0.01"
+                              placeholder="Price"
+                              value={v.price}
+                              onChange={(e) => {
+                                const updated = [...tempVariants];
+                                updated[index].price = e.target.value;
+                                setTempVariants(updated);
+                              }}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Stock *</label>
+                            <input
+                              type="number"
+                              required
+                              placeholder="Stock"
+                              value={v.stock}
+                              onChange={(e) => {
+                                const updated = [...tempVariants];
+                                updated[index].stock = e.target.value;
+                                setTempVariants(updated);
+                              }}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                            />
+                          </div>
+                          <div className="flex items-end justify-between gap-1 h-full pt-4">
+                            <div className="flex-1">
+                              <select
+                                value={v.status}
+                                onChange={(e) => {
+                                  const updated = [...tempVariants];
+                                  updated[index].status = e.target.value;
+                                  setTempVariants(updated);
+                                }}
+                                className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white text-gray-750 font-bold"
+                              >
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="INACTIVE">INACTIVE</option>
+                              </select>
+                            </div>
+                            {tempVariants.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTempVariants(tempVariants.filter(item => item.id !== v.id));
+                                }}
+                                className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 transition"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -885,8 +887,8 @@ export default function AdminProducts() {
                 {editingProduct && (
                   <div className="space-y-3">
                     {/* Existing saved variants */}
-                    <div className="border border-gray-150 rounded-2xl overflow-hidden bg-white max-h-[220px] overflow-y-auto">
-                      <table className="w-full text-left border-collapse text-[11px]">
+                    <div className="border border-gray-150 rounded-2xl overflow-hidden bg-white max-h-[220px] overflow-y-auto overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-[11px] min-w-[550px]">
                         <thead>
                           <tr className="bg-gray-50 border-b border-gray-100 text-gray-450 uppercase font-black tracking-wider">
                             <th className="p-2.5">Attribute</th>
@@ -1014,50 +1016,52 @@ export default function AdminProducts() {
                     {/* Inline Form to add variant to existing product */}
                     <div className="bg-gray-50 rounded-xl p-3 border border-gray-150 space-y-2.5">
                       <span className="block text-[10px] text-gray-450 uppercase font-black">Add Variant Option</span>
-                      <div className="grid grid-cols-4 gap-2 items-center">
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Attribute</label>
-                          <select
-                            value={newVarAttr}
-                            onChange={(e) => setNewVarAttr(e.target.value)}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
-                          >
-                            <option value="Weight">Weight</option>
-                            <option value="Volume">Volume</option>
-                            <option value="Pack">Pack</option>
-                            <option value="Size">Size</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Value *</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 5kg, 2L"
-                            value={newVarVal}
-                            onChange={(e) => setNewVarVal(e.target.value)}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Price *</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="Price"
-                            value={newVarPrice}
-                            onChange={(e) => setNewVarPrice(e.target.value)}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Stock *</label>
-                          <input
-                            type="number"
-                            placeholder="Stock"
-                            value={newVarStock}
-                            onChange={(e) => setNewVarStock(e.target.value)}
-                            className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
-                          />
+                      <div className="overflow-x-auto pb-2">
+                        <div className="grid grid-cols-4 gap-2 items-center min-w-[500px]">
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Attribute</label>
+                            <select
+                              value={newVarAttr}
+                              onChange={(e) => setNewVarAttr(e.target.value)}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                            >
+                              <option value="Weight">Weight</option>
+                              <option value="Volume">Volume</option>
+                              <option value="Pack">Pack</option>
+                              <option value="Size">Size</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Value *</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 5kg, 2L"
+                              value={newVarVal}
+                              onChange={(e) => setNewVarVal(e.target.value)}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Price *</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Price"
+                              value={newVarPrice}
+                              onChange={(e) => setNewVarPrice(e.target.value)}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-gray-400 uppercase mb-0.5 font-bold">Stock *</label>
+                            <input
+                              type="number"
+                              placeholder="Stock"
+                              value={newVarStock}
+                              onChange={(e) => setNewVarStock(e.target.value)}
+                              className="w-full rounded-lg border border-gray-250 p-1 text-[11px] focus:outline-none bg-white font-bold text-gray-750"
+                            />
+                          </div>
                         </div>
                       </div>
                       <div className="flex justify-end">
