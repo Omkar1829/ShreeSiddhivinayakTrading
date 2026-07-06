@@ -260,11 +260,6 @@ export default function AdminSettings() {
           </div>
 
         </form>
-
-        <div className="mt-6 flex items-center gap-2 text-[10px] text-gray-400 justify-center">
-          <ShieldCheck size={14} className="text-emerald-650" />
-          <span>Config overrides take place immediately inside database session variables.</span>
-        </div>
       </div>
 
       {/* Box 2: Staff Registry & Administration (Admins / Riders) */}

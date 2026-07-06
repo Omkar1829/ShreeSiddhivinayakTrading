@@ -284,6 +284,15 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), valida
       imageUrl = uploadResult.secure_url;
     }
 
+    let variantsList = [];
+    if (req.body.variants) {
+      try {
+        variantsList = JSON.parse(req.body.variants);
+      } catch (e) {
+        variantsList = [];
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -295,7 +304,21 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), valida
         sku: sku || null,
         barcode: barcode || null,
         imageUrl,
-        status
+        status,
+        variants: {
+          create: variantsList
+            .filter(v => v.attributeValue && !isNaN(parseFloat(v.price)) && !isNaN(parseInt(v.stock)))
+            .map(v => ({
+              attributeName: v.attributeName || 'Weight',
+              attributeValue: v.attributeValue,
+              price: parseFloat(v.price),
+              stock: parseInt(v.stock),
+              status: v.status || 'ACTIVE'
+            }))
+        }
+      },
+      include: {
+        variants: true
       }
     });
 

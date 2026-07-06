@@ -190,9 +190,9 @@ export default function OrderTracking() {
               <div className="bg-white border-4 border-emerald-700 rounded-2xl p-4 shadow-xl">
                 {order.deliveryToken ? (
                   <QRCodeSVG 
-                    value={qrVerifyUrl} 
-                    size={160} 
-                    level="H" 
+                    value={order.deliveryToken || ''} 
+                    size={260} 
+                    level="L" 
                     includeMargin={true}
                   />
                 ) : (

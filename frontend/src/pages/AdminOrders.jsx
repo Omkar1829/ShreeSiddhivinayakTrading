@@ -372,7 +372,7 @@ export default function AdminOrders() {
                         {order.status === 'PROCESSING' && (
                           <button
                             onClick={() => handleUpdateStatus(order.id, 'PACKED')}
-                            className="rounded-lg bg-purple-750 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-purple-800 transition"
+                            className="rounded-lg bg-purple-700 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-purple-800 transition"
                           >
                             Finish Pack
                           </button>
@@ -552,7 +552,7 @@ export default function AdminOrders() {
               <span className="block text-[9px] text-gray-450 uppercase font-bold text-left">2. Or Rider Scan QR Code</span>
               
               <div className="flex justify-center bg-gray-50 border border-gray-150 rounded-2xl p-4 shadow-inner">
-                <QRCodeSVG value={assigningOrder.id} size={160} includeMargin={true} />
+                <QRCodeSVG value={assigningOrder.id} size={260} includeMargin={true} />
               </div>
 
               <p className="text-[10px] text-gray-500 font-semibold leading-relaxed px-2">
