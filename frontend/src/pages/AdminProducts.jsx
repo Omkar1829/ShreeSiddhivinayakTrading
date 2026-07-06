@@ -618,7 +618,7 @@ export default function AdminProducts() {
       {/* Product Add/Edit Modal */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div className="border-b border-gray-150 p-5 shrink-0 flex items-center justify-between">
               <h3 className="text-base font-bold text-gray-900">
                 {editingProduct ? 'Edit Catalog Product' : 'Add Catalog Product'}

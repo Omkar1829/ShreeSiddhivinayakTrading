@@ -90,16 +90,31 @@ export default function Catalog() {
     };
   }, [categories.length, brands.length, pagination.limit, searchParams, dispatch]);
 
-  const updateSearchParam = (key, value) => {
+  const updateSearchParam = (keyOrUpdates, value) => {
     const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
+    
+    if (typeof keyOrUpdates === 'string') {
+      const key = keyOrUpdates;
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+      if (key !== 'offset') {
+        newParams.delete('offset');
+      }
     } else {
-      newParams.delete(key);
-    }
-    // Reset offset on filter changes
-    if (key !== 'offset') {
-      newParams.delete('offset');
+      const updates = keyOrUpdates;
+      Object.entries(updates).forEach(([key, val]) => {
+        if (val) {
+          newParams.set(key, val);
+        } else {
+          newParams.delete(key);
+        }
+        if (key !== 'offset') {
+          newParams.delete('offset');
+        }
+      });
     }
     setSearchParams(newParams);
   };
@@ -145,8 +160,7 @@ export default function Catalog() {
           <select
             value={filters.category}
             onChange={(e) => {
-              updateSearchParam('category', e.target.value);
-              updateSearchParam('subcategory', ''); // Reset subcat
+              updateSearchParam({ category: e.target.value, subcategory: '' });
             }}
             className="rounded-xl border border-gray-250 bg-white px-3 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none"
           >

@@ -372,7 +372,7 @@ export default function AdminOrders() {
                         {order.status === 'PROCESSING' && (
                           <button
                             onClick={() => handleUpdateStatus(order.id, 'PACKED')}
-                            className="rounded-lg bg-purple-750 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-purple-800 transition"
+                            className="rounded-lg bg-purple-700 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-purple-800 transition"
                           >
                             Finish Pack
                           </button>
