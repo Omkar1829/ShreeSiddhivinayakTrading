@@ -59,6 +59,10 @@ export default function AdminProducts() {
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
+  // Subcategory Creation Modal state
+  const [isNewSubcategoryModalOpen, setIsNewSubcategoryModalOpen] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
+
   // CSV Import state
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
@@ -118,6 +122,22 @@ export default function AdminProducts() {
       }
     } catch (err) {
       alert(err.response?.data?.error?.message || err.message || 'Failed to create category.');
+    }
+  };
+
+  const handleSubcategoryCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!newSubcategoryName.trim() || !prodCat) return;
+    try {
+      const res = await api.post(`/api/categories/${prodCat}/subcategories`, { name: newSubcategoryName, status: 'ACTIVE' });
+      if (res.data.success) {
+        await loadData(false);
+        setProdSubCat(res.data.subcategory.id);
+        setIsNewSubcategoryModalOpen(false);
+        setNewSubcategoryName('');
+      }
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to create subcategory.');
     }
   };
 
@@ -556,7 +576,18 @@ export default function AdminProducts() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Subcategory</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] text-gray-450 uppercase">Subcategory</label>
+                    {prodCat && (
+                      <button
+                        type="button"
+                        onClick={() => setIsNewSubcategoryModalOpen(true)}
+                        className="text-[9px] text-primary-855 font-bold hover:underline"
+                      >
+                        + Create New
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={prodSubCat}
                     onChange={(e) => setProdSubCat(e.target.value)}
@@ -740,6 +771,43 @@ export default function AdminProducts() {
                 <button
                   type="button"
                   onClick={() => setIsNewCategoryModalOpen(false)}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary-800 px-4 py-2 text-xs font-bold text-white hover:bg-primary-900"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Subcategory Creation Modal */}
+      {isNewSubcategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
+            <h3 className="text-sm font-black text-gray-900">Create New Subcategory</h3>
+            <form onSubmit={handleSubcategoryCreateSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] text-gray-400 uppercase mb-1 font-bold">Subcategory Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Fresh Juices, Milk Products"
+                  value={newSubcategoryName}
+                  onChange={(e) => setNewSubcategoryName(e.target.value)}
+                  className="w-full rounded-xl border border-gray-250 p-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsNewSubcategoryModalOpen(false)}
                   className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
