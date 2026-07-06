@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     }
     loadDashboardData(true);
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://54.234.20.250:5000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://api.shreesiddhivinayaktrading.in';
     let eventSource = null;
     let pollInterval = null;
 
