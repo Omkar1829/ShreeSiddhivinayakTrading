@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { downloadInvoicePdf } from '../utils/invoice';
 import { ArrowLeft, Phone, MessageSquare, Loader2, Calendar, MapPin, CreditCard, ShieldCheck, AlertTriangle } from 'lucide-react';
 
@@ -57,7 +58,7 @@ export default function OrderTracking() {
         setOrder(prev => ({ ...prev, status: 'CANCELLED', cancelledAt: new Date() }));
       }
     } catch (err) {
-      alert(err.message || 'Cancellation failed.');
+      toast.error(err.message || 'Cancellation failed.');
     } finally {
       setCancelling(false);
     }

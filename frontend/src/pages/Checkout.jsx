@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { clearCart, selectCartTotal } from '../store/cartSlice';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { MapPin, Plus, CheckCircle, Loader2, ArrowLeft, ShieldCheck, Wallet, QrCode } from 'lucide-react';
 
 export default function Checkout() {
@@ -113,7 +114,7 @@ export default function Checkout() {
 
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) {
-      alert('Please select or add a shipping address.');
+      toast.warning('Please select or add a shipping address.');
       return;
     }
 
@@ -135,7 +136,7 @@ export default function Checkout() {
         navigate(`/orders/${res.data.order.id}`);
       }
     } catch (err) {
-      alert(err.message || 'Checkout failed. Please review stock availability.');
+      toast.error(err.message || 'Checkout failed. Please review stock availability.');
     } finally {
       setLoading(false);
     }

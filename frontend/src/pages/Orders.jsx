@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart } from '../store/cartSlice';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { downloadInvoicePdf } from '../utils/invoice';
 import { ShoppingBag, ChevronRight, Loader2, Calendar, ClipboardCheck } from 'lucide-react';
 
@@ -67,7 +68,7 @@ export default function Orders() {
         navigate('/cart');
       }
     } catch (err) {
-      alert('Failed to reorder items. Some variants may no longer be available.');
+      toast.error('Failed to reorder items. Some variants may no longer be available.');
     }
   };
 
@@ -78,7 +79,7 @@ export default function Orders() {
         downloadInvoicePdf(res.data.order);
       }
     } catch (err) {
-      alert('Failed to load invoice details.');
+      toast.error('Failed to load invoice details.');
     }
   };
 

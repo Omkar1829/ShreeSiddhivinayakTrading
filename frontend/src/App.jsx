@@ -8,6 +8,7 @@ import api from './services/api';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout';
+import ToastContainer from './components/ToastContainer';
 
 // Customer Pages
 import Home from './pages/Home';
@@ -31,6 +32,7 @@ import AdminOrders from './pages/AdminOrders';
 import AdminCustomers from './pages/AdminCustomers';
 import AdminSettings from './pages/AdminSettings';
 import AdminAuditLogs from './pages/AdminAuditLogs';
+import AdminCategoriesBrands from './pages/AdminCategoriesBrands';
 
 // Helper Route Guard: Authenticated Users Only
 function PrivateRoute({ children }) {
@@ -65,36 +67,43 @@ export default function App() {
   // Case 1: Logged in as Admin -> Render dedicated Full-Fledge Admin Console Shell
   if (isAuthenticated && user?.isAdmin) {
     return (
-      <AdminLayout>
-        <Routes>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/products" element={<AdminProducts />} />
-          <Route path="/admin/inventory" element={<AdminInventory />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/customers" element={<AdminCustomers />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-          
-          {/* Allow admins to access the scanner directly from their session */}
-          <Route path="/delivery/scan" element={<DeliveryScanner />} />
-          <Route path="/delivery/verify" element={<DeliveryScanner />} />
+      <>
+        <AdminLayout>
+          <Routes>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/products" element={<AdminProducts />} />
+            <Route path="/admin/inventory" element={<AdminInventory />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/admin/customers" element={<AdminCustomers />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+            <Route path="/admin/catalog" element={<AdminCategoriesBrands />} />
+            
+            {/* Allow admins to access the scanner directly from their session */}
+            <Route path="/delivery/scan" element={<DeliveryScanner />} />
+            <Route path="/delivery/verify" element={<DeliveryScanner />} />
 
-          {/* Catch-all redirect for admin users back to dashboard */}
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </AdminLayout>
+            {/* Catch-all redirect for admin users back to dashboard */}
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
+        </AdminLayout>
+        <ToastContainer />
+      </>
     );
   }
 
   // Case 2: Logged in as Delivery Rider -> Render Rider Dashboard directly
   if (isAuthenticated && user?.role === 'DELIVERY') {
     return (
-      <Routes>
-        <Route path="/" element={<RiderDashboard />} />
-        
-        {/* Catch-all redirect for riders back to dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/" element={<RiderDashboard />} />
+          
+          {/* Catch-all redirect for riders back to dashboard */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <ToastContainer />
+      </>
     );
   }
 
@@ -129,6 +138,7 @@ export default function App() {
       </main>
 
       {!isScannerPage && <Footer />}
+      <ToastContainer />
     </div>
   );
 }

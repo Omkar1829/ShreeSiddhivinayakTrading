@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, ArrowLeft, Search, Upload, Download, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export default function AdminProducts() {
@@ -144,7 +145,7 @@ export default function AdminProducts() {
         setNewCategoryName('');
       }
     } catch (err) {
-      alert(err.response?.data?.error?.message || err.message || 'Failed to create category.');
+      toast.error(err.response?.data?.error?.message || err.message || 'Failed to create category.');
     }
   };
 
@@ -160,7 +161,7 @@ export default function AdminProducts() {
         setNewSubcategoryName('');
       }
     } catch (err) {
-      alert(err.response?.data?.error?.message || err.message || 'Failed to create subcategory.');
+      toast.error(err.response?.data?.error?.message || err.message || 'Failed to create subcategory.');
     }
   };
 
@@ -176,14 +177,14 @@ export default function AdminProducts() {
         setNewBrandName('');
       }
     } catch (err) {
-      alert(err.response?.data?.error?.message || err.message || 'Failed to create brand.');
+      toast.error(err.response?.data?.error?.message || err.message || 'Failed to create brand.');
     }
   };
 
   const handleInlineAddVariant = async (e) => {
     e.preventDefault();
     if (!newVarVal.trim() || !newVarPrice || !newVarStock) {
-      alert('Please fill out all variant fields.');
+      toast.warning('Please fill out all variant fields.');
       return;
     }
     try {
@@ -209,7 +210,7 @@ export default function AdminProducts() {
         }
       }
     } catch (err) {
-      alert(err.message || 'Failed to add variant.');
+      toast.error(err.message || 'Failed to add variant.');
     }
   };
 
@@ -233,7 +234,7 @@ export default function AdminProducts() {
         }
       }
     } catch (err) {
-      alert(err.message || 'Variant update failed.');
+      toast.error(err.message || 'Variant update failed.');
     }
   };
 
@@ -251,7 +252,7 @@ export default function AdminProducts() {
         }
       }
     } catch (err) {
-      alert(err.message || 'Delete failed.');
+      toast.error(err.message || 'Delete failed.');
     }
   };
 
@@ -274,7 +275,7 @@ export default function AdminProducts() {
   const handleCsvUploadSubmit = async (e) => {
     e.preventDefault();
     if (!csvFile) {
-      alert('Please select a CSV file first.');
+      toast.warning('Please select a CSV file first.');
       return;
     }
 
@@ -299,7 +300,7 @@ export default function AdminProducts() {
         setCsvErrors(res.data.errors || []);
       }
     } catch (err) {
-      alert(err.response?.data?.error?.message || err.message || 'Failed to import CSV.');
+      toast.error(err.response?.data?.error?.message || err.message || 'Failed to import CSV.');
     } finally {
       setCsvUploading(false);
     }
@@ -337,7 +338,7 @@ export default function AdminProducts() {
       loadData();
       closeProductModal();
     } catch (err) {
-      alert(err.message || 'Product save failed.');
+      toast.error(err.message || 'Product save failed.');
     } finally {
       setFormSubmitting(false);
     }
@@ -362,7 +363,7 @@ export default function AdminProducts() {
         closeVariantModal();
       }
     } catch (err) {
-      alert(err.message || 'Failed to add variant.');
+      toast.error(err.message || 'Failed to add variant.');
     } finally {
       setFormSubmitting(false);
     }
@@ -374,7 +375,7 @@ export default function AdminProducts() {
       const res = await api.delete(`/api/products/${id}`);
       if (res.data.success) loadData();
     } catch (err) {
-      alert(err.message || 'Delete failed.');
+      toast.error(err.message || 'Delete failed.');
     }
   };
 
@@ -384,7 +385,7 @@ export default function AdminProducts() {
       const res = await api.delete(`/api/products/variants/${id}`);
       if (res.data.success) loadData();
     } catch (err) {
-      alert(err.message || 'Delete failed.');
+      toast.error(err.message || 'Delete failed.');
     }
   };
 

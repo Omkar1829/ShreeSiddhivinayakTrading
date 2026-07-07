@@ -1,7 +1,9 @@
+import { toast } from './toast';
+
 export const downloadInvoicePdf = (order) => {
   const printWindow = window.open('', '_blank', 'width=800,height=900');
   if (!printWindow) {
-    alert('Please allow popups to download/print the invoice.');
+    toast.warning('Please allow popups to download/print the invoice.');
     return;
   }
 
