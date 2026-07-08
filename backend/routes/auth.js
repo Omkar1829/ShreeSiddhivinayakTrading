@@ -17,6 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_siddhivinayak_jwt_access_
 
 // Verification codes cache (in-memory for MVP development)
 const otpCache = new Map();
+const lockoutCache = new Map();
 
 // ----------------------------------------------------
 // Validation Schemas
@@ -55,36 +56,57 @@ const registerSchema = yup.object().shape({
  */
 router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
   const { phone } = req.body;
-  
-  // Format phone number to clean representation (ensure prefix)
   const formattedPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
 
-  // Check if user is already registered
+  // 1. Check Lockout Status
+  const lockout = lockoutCache.get(formattedPhone);
+  if (lockout && lockout.lockedUntil > Date.now()) {
+    const remainingMin = Math.ceil((lockout.lockedUntil - Date.now()) / (60 * 1000));
+    return res.status(423).json({
+      success: false,
+      error: {
+        code: 'ACCOUNT_LOCKED',
+        message: `Too many failed attempts. This number is locked for another ${remainingMin} minutes.`
+      }
+    });
+  }
+
+  // 2. Check Resend Cooldown (30 seconds)
+  const cachedOtp = otpCache.get(formattedPhone);
+  if (cachedOtp) {
+    const elapsed = Date.now() - (cachedOtp.createdAt || 0);
+    if (elapsed < 30 * 1000) {
+      const waitSec = Math.ceil((30 * 1000 - elapsed) / 1000);
+      return res.status(429).json({
+        success: false,
+        error: {
+          code: 'OTP_COOLDOWN',
+          message: `Please wait ${waitSec} seconds before requesting a new verification code.`
+        }
+      });
+    }
+  }
+
+  // Check if user is registered
   const user = await prisma.user.findUnique({
     where: { phone: formattedPhone }
   });
   const isNewUser = !user;
 
-  let otpCode = '123456';
+  // Generate a random 6-digit OTP code (no mock bypass code by default)
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
   let sessionId = null;
-  
-  // Admin bypass list (rider number 9632587410 is NOT included here)
-  const bypassNumbers = ['+919876543210', '9876543210'];
-  const isBypass = bypassNumbers.includes(phone) || bypassNumbers.includes(formattedPhone);
 
   const has2Factor = !!process.env.TWOFACTOR_API_KEY;
   const hasTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 
-  if (isBypass) {
-    console.log(`[OTP Bypass] Bypass active for ${formattedPhone}. Using mock OTP 123456.`);
-  } else if (has2Factor) {
+  if (has2Factor) {
     try {
       sessionId = await sendTwoFactorOtp(formattedPhone);
     } catch (err) {
       console.error('[2Factor OTP Error] Failed to send message via 2Factor REST:', err.message);
     }
   } else if (hasTwilio) {
-    otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     try {
       await sendTwilioMessage(
         formattedPhone,
@@ -93,24 +115,26 @@ router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
     } catch (err) {
       console.error('[Twilio OTP Error] Failed to send message via Twilio REST:', err.message);
     }
+  } else {
+    // Mock fallback for development (without 123456 bypass)
+    console.log(`[MOCK OTP] Twilio/2Factor not configured. Generated mock OTP code: ${otpCode} for ${formattedPhone}`);
   }
 
   otpCache.set(formattedPhone, {
     code: otpCode,
     sessionId: sessionId,
+    createdAt: Date.now(),
     expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes expiration
   });
 
-  console.log(`[OTP] Generated verification session for ${formattedPhone}. 2Factor Session ID: ${sessionId}, Local code: ${otpCode}`);
+  console.log(`[OTP] Generated verification session for ${formattedPhone}. 2Factor Session ID: ${sessionId}, Code: ${otpCode}`);
 
   return res.json({
     success: true,
     isNewUser,
-    message: isBypass
-      ? 'Verification code generated successfully (bypass mode: 123456).'
-      : (has2Factor || hasTwilio)
-        ? 'Verification code sent successfully.' 
-        : 'Verification code generated successfully (mock mode: 123456).'
+    message: (has2Factor || hasTwilio)
+      ? 'Verification code sent successfully.'
+      : `Verification code generated successfully. [Mock Console Code: ${otpCode}]`
   });
 });
 
@@ -138,30 +162,60 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
     });
   }
 
-  // Verification checks:
-  if (code === '123456') {
-    // Master test bypass code allowed universally
-  } else if (cachedOtp.sessionId) {
+  // 1. Check if number is currently locked out
+  const lockout = lockoutCache.get(formattedPhone);
+  if (lockout && lockout.lockedUntil > Date.now()) {
+    const remainingMin = Math.ceil((lockout.lockedUntil - Date.now()) / (60 * 1000));
+    return res.status(423).json({
+      success: false,
+      error: {
+        code: 'ACCOUNT_LOCKED',
+        message: `Too many failed attempts. This number is locked for another ${remainingMin} minutes.`
+      }
+    });
+  }
+
+  let isMatched = false;
+  if (cachedOtp.sessionId) {
     // Verify via 2Factor verify API
-    const isMatched = await verifyTwoFactorOtp(cachedOtp.sessionId, code);
-    if (!isMatched) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_OTP', message: 'Incorrect verification code.' }
-      });
-    }
+    isMatched = await verifyTwoFactorOtp(cachedOtp.sessionId, code);
   } else {
-    // Fallback to local code check (Twilio or mock mode)
-    if (cachedOtp.code !== code) {
+    // Check local generated code (no master 123456 bypass)
+    isMatched = cachedOtp.code === code;
+  }
+
+  if (!isMatched) {
+    // Record failed attempt
+    let currentLockout = lockoutCache.get(formattedPhone) || { attempts: 0, lockedUntil: 0 };
+    currentLockout.attempts += 1;
+    lockoutCache.set(formattedPhone, currentLockout);
+
+    if (currentLockout.attempts >= 5) {
+      currentLockout.lockedUntil = Date.now() + 60 * 60 * 1000; // 1 hour lock
+      lockoutCache.set(formattedPhone, currentLockout);
+      otpCache.delete(formattedPhone); // clear OTP session
+      return res.status(423).json({
+        success: false,
+        error: {
+          code: 'ACCOUNT_LOCKED',
+          message: 'Incorrect verification code entered 5 times. Your account is locked for 1 hour.'
+        }
+      });
+    } else {
+      const remaining = 5 - currentLockout.attempts;
       return res.status(400).json({
         success: false,
-        error: { code: 'INVALID_OTP', message: 'Incorrect verification code.' }
+        error: {
+          code: 'INVALID_OTP',
+          message: `Incorrect verification code. You have ${remaining} attempts remaining.`
+        }
       });
     }
   }
 
-  // OTP verified successfully, clear cache
+  // OTP verified successfully, clear cache and lockout stats
   otpCache.delete(formattedPhone);
+  lockoutCache.delete(formattedPhone);
 
   try {
     // Check if user exists, otherwise create
@@ -169,8 +223,8 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
       where: { phone: formattedPhone }
     });
 
-    const bypassAdmins = ['+919876543210'];
-    const shouldBeAdmin = bypassAdmins.includes(formattedPhone);
+    const adminNumbers = ['+918452921123'];
+    const shouldBeAdmin = adminNumbers.includes(formattedPhone);
 
     if (!user) {
       // Sign a temporary registration token (expires in 10 minutes)
@@ -250,8 +304,8 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       });
     }
 
-    const bypassAdmins = ['+919876543210'];
-    const shouldBeAdmin = bypassAdmins.includes(phone);
+    const adminNumbers = ['+918452921123'];
+    const shouldBeAdmin = adminNumbers.includes(phone);
 
     user = await prisma.user.create({
       data: {

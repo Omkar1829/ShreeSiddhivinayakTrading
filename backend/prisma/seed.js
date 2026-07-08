@@ -11,8 +11,8 @@ async function main() {
     { key: 'store_name', value: 'SHRI SIDDHIVINAYAK TRADING' },
     { key: 'logo_url', value: '' },
     { key: 'banner_url', value: '' },
-    { key: 'phone_number', value: '+919876543210' },
-    { key: 'whatsapp_number', value: '+919876543210' },
+    { key: 'phone_number', value: '+918452921123' },
+    { key: 'whatsapp_number', value: '+918452921123' },
     { key: 'address', value: 'Shop No. 4, Opp. Krishna Tower, Uran Naka, Panvel - 410206, Maharashtra, India' },
     { key: 'opening_time', value: '08:00' },
     { key: 'closing_time', value: '21:00' },
@@ -30,7 +30,7 @@ async function main() {
 
   // 2. Create Admin Account
   console.log('Inserting admin account...');
-  const adminPhone = '+919876543210';
+  const adminPhone = '+918452921123';
   await prisma.user.upsert({
     where: { phone: adminPhone },
     update: { isAdmin: true, name: 'Admin Yatish', role: 'ADMIN' },

@@ -128,7 +128,7 @@ export default function OrderTracking() {
               <div>
                 <h4 className="text-sm font-bold text-red-800">Order Cancelled or Rejected</h4>
                 <p className="text-xs text-red-500 mt-0.5 leading-relaxed">
-                  This order was cancelled by you or rejected by the store. If this was an error, please browse our catalog and create a new order or call Yatish at +91 9876543210.
+                  This order was cancelled by you or rejected by the store. If this was an error, please browse our catalog and create a new order or call Yatish at +91 8452921123.
                 </p>
               </div>
             </div>
@@ -296,13 +296,13 @@ export default function OrderTracking() {
 
           <div className="flex gap-2.5 w-full sm:w-auto justify-center">
             <a 
-              href="tel:+919876543210" 
+              href="tel:+918452921123" 
               className="flex-1 sm:flex-none flex items-center justify-center gap-1 text-center rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
             >
               <Phone size={14} /> Call Partner
             </a>
             <a 
-              href="https://wa.me/919876543210" 
+              href="https://wa.me/918452921123" 
               target="_blank" 
               rel="noreferrer"
               className="flex-1 sm:flex-none flex items-center justify-center gap-1 rounded-xl bg-emerald-500 px-5 py-3 text-xs font-bold text-white hover:bg-emerald-600 transition shadow-sm"

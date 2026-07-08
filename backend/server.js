@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const prisma = require('./config/prisma');
+const path = require('path');
+const fs = require('fs');
 
 const authRoutes = require('./routes/auth');
 const categoryRoutes = require('./routes/categories');
@@ -28,6 +30,27 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Setup local uploads directory and default grayscale SVG image
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+const defaultSvgPath = path.join(uploadDir, 'default-product.svg');
+if (!fs.existsSync(defaultSvgPath)) {
+  const defaultSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="100%" height="100%" fill="#f3f4f6"/>
+  <circle cx="200" cy="180" r="60" fill="#e5e7eb"/>
+  <path d="M150,290 C150,250 170,230 200,230 C230,230 250,250 250,290" fill="#e5e7eb"/>
+  <text x="50%" y="330" font-family="'Inter', sans-serif" font-size="16" font-weight="600" fill="#9ca3af" text-anchor="middle">No Image Available</text>
+  <path d="M185,150 L215,150 L210,180 L190,180 Z" fill="none" stroke="#9ca3af" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M190,150 C190,140 210,140 210,150" fill="none" stroke="#9ca3af" stroke-width="3"/>
+</svg>`;
+  fs.writeFileSync(defaultSvgPath, defaultSvg);
+}
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(uploadDir));
 
 // Simple logger middleware
 app.use((req, res, next) => {

@@ -261,13 +261,13 @@ export default function Home() {
         </p>
         <div className="flex items-center justify-center gap-4">
           <a
-            href="tel:+919876543210"
+            href="tel:+918452921123"
             className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
           >
-            <Phone size={15} /> Call: +91 9876543210
+            <Phone size={15} /> Call: +91 8452921123
           </a>
           <a
-            href="https://wa.me/919876543210"
+            href="https://wa.me/918452921123"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-5 py-3 text-xs font-bold text-white hover:bg-emerald-600 transition shadow-sm"
