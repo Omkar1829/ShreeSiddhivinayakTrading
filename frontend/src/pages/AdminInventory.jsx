@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { Loader2, ArrowLeft, RefreshCw, History, AlertTriangle, Search } from 'lucide-react';
 
 export default function AdminInventory() {
@@ -51,7 +52,7 @@ export default function AdminInventory() {
     e.preventDefault();
     const qty = parseInt(adjustQty);
     if (!qty || qty === 0) {
-      alert('Please enter a non-zero quantity adjustment.');
+      toast.warning('Please enter a non-zero quantity adjustment.');
       return;
     }
 
@@ -80,7 +81,7 @@ export default function AdminInventory() {
         setAdjustType('STOCK_ADDITION');
       }
     } catch (err) {
-      alert(err.message || 'Failed to execute stock adjustment.');
+      toast.error(err.message || 'Failed to execute stock adjustment.');
     } finally {
       setSubmitting(false);
     }

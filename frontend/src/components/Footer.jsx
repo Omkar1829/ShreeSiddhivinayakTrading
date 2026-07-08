@@ -57,13 +57,13 @@ export default function Footer() {
             </p>
             <div className="flex flex-wrap gap-3">
               <a 
-                href="tel:+919876543210" 
+                href="tel:+918452921123" 
                 className="flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-primary-900 hover:bg-gray-100 transition shadow-sm"
               >
                 <Phone size={14} /> Call Store
               </a>
               <a 
-                href="https://wa.me/919876543210" 
+                href="https://wa.me/918452921123" 
                 target="_blank" 
                 rel="noreferrer"
                 className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-600 transition shadow-sm"

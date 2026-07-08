@@ -3,12 +3,48 @@ const yup = require('yup');
 const prisma = require('../config/prisma');
 const validate = require('../middleware/validate');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { uploadImage } = require('../config/cloudinary');
 const multer = require('multer');
 const { logAudit } = require('../utils/auditLogger');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
-const upload = multer();
+
+// Local Multer Disk Storage Configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
+
+// Helper functions to resolve absolute image URLs dynamically (including default grayscale SVG)
+const mapProductImage = (prod, req) => {
+  if (!prod) return prod;
+  const hostUrl = `${req.protocol}://${req.get('host')}`;
+  const imageUrl = prod.imageUrl
+    ? (prod.imageUrl.startsWith('http') ? prod.imageUrl : `${hostUrl}${prod.imageUrl}`)
+    : `${hostUrl}/uploads/default-product.svg`;
+  return {
+    ...prod,
+    imageUrl
+  };
+};
+
+const mapProductsImages = (products, req) => {
+  if (Array.isArray(products)) {
+    return products.map(p => mapProductImage(p, req));
+  }
+  return mapProductImage(products, req);
+};
 
 const slugify = (text) => text.toLowerCase().trim().replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
@@ -18,12 +54,12 @@ const slugify = (text) => text.toLowerCase().trim().replace(/[^a-z0-9 -]/g, '').
 
 const productCreateSchema = yup.object().shape({
   name: yup.string().required('Product name is required.').min(2, 'Name must be at least 2 characters.'),
-  categoryId: yup.string().uuid('Invalid Category ID.').nullable().optional(),
-  subcategoryId: yup.string().uuid('Invalid Subcategory ID.').nullable().optional(),
-  brandId: yup.string().uuid('Invalid Brand ID.').nullable().optional(),
-  description: yup.string().nullable().optional(),
-  sku: yup.string().nullable().optional(),
-  barcode: yup.string().nullable().optional(),
+  categoryId: yup.string().transform((val) => (val === '' ? null : val)).uuid('Invalid Category ID.').nullable().optional(),
+  subcategoryId: yup.string().transform((val) => (val === '' ? null : val)).uuid('Invalid Subcategory ID.').nullable().optional(),
+  brandId: yup.string().transform((val) => (val === '' ? null : val)).uuid('Invalid Brand ID.').nullable().optional(),
+  description: yup.string().transform((val) => (val === '' ? null : val)).nullable().optional(),
+  sku: yup.string().transform((val) => (val === '' ? null : val)).nullable().optional(),
+  barcode: yup.string().transform((val) => (val === '' ? null : val)).nullable().optional(),
   status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be ACTIVE or INACTIVE.').default('ACTIVE')
 });
 
@@ -122,7 +158,7 @@ router.get('/', async (req, res) => {
 
     return res.json({
       success: true,
-      products,
+      products: mapProductsImages(products, req),
       pagination: {
         total,
         limit: parsedLimit,
@@ -167,7 +203,7 @@ router.get('/:slug', async (req, res) => {
 
     return res.json({
       success: true,
-      product
+      product: mapProductImage(product, req)
     });
   } catch (error) {
     console.error('Fetch product by slug error:', error);
@@ -242,7 +278,7 @@ router.get('/admin/all', authenticateToken, requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      products,
+      products: mapProductsImages(products, req),
       pagination: {
         total,
         limit: limit ? parseInt(limit) : total,
@@ -280,8 +316,7 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), valida
 
     let imageUrl = null;
     if (req.file) {
-      const uploadResult = await uploadImage(req.file.buffer, 'products');
-      imageUrl = uploadResult.secure_url;
+      imageUrl = `/uploads/${req.file.filename}`;
     }
 
     let variantsList = [];
@@ -332,7 +367,7 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), valida
 
     return res.status(201).json({
       success: true,
-      product
+      product: mapProductImage(product, req)
     });
   } catch (error) {
     console.error('Create product error:', error);
@@ -377,8 +412,7 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), vali
 
     let imageUrl = oldProduct.imageUrl;
     if (req.file) {
-      const uploadResult = await uploadImage(req.file.buffer, 'products');
-      imageUrl = uploadResult.secure_url;
+      imageUrl = `/uploads/${req.file.filename}`;
     }
 
     const updatedProduct = await prisma.product.update({
@@ -408,7 +442,7 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), vali
 
     return res.json({
       success: true,
-      product: updatedProduct
+      product: mapProductImage(updatedProduct, req)
     });
   } catch (error) {
     console.error('Update product error:', error);

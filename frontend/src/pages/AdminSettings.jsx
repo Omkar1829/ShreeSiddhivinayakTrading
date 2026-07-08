@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setSettings } from '../store/storeSlice';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { Store, Loader2, ArrowLeft, Save, ShieldCheck, Users, Trash2, Plus, UserPlus } from 'lucide-react';
 
 export default function AdminSettings() {
@@ -91,10 +92,10 @@ export default function AdminSettings() {
       const res = await api.put('/api/store/settings', payload);
       if (res.data.success) {
         dispatch(setSettings(res.data.settings));
-        alert('Store configurations saved successfully!');
+        toast.success('Store configurations saved successfully!');
       }
     } catch (err) {
-      alert(err.message || 'Failed to update store settings.');
+      toast.error(err.message || 'Failed to update store settings.');
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +122,7 @@ export default function AdminSettings() {
         setMemberPhone('');
         setMemberRole('DELIVERY');
         loadTeam();
-        alert('Staff member registered successfully!');
+        toast.success('Staff member registered successfully!');
       }
     } catch (err) {
       setMemberError(err.message || 'Failed to register team member.');
@@ -138,7 +139,7 @@ export default function AdminSettings() {
         loadTeam();
       }
     } catch (err) {
-      alert(err.message || 'Failed to remove member.');
+      toast.error(err.message || 'Failed to remove member.');
     }
   };
 

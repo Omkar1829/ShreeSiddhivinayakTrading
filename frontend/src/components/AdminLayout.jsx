@@ -4,6 +4,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { setSettings } from '../store/storeSlice';
 import { clearCredentials } from '../store/authSlice';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -12,6 +13,7 @@ import {
   Users,
   ShieldCheck,
   Settings,
+  FolderTree,
   PlusCircle,
   Plus,
   LogOut,
@@ -51,7 +53,7 @@ export default function AdminLayout({ children }) {
         dispatch(setSettings(res.data.settings));
       }
     } catch (err) {
-      alert(err.message || 'Failed to update store status.');
+      toast.error(err.message || 'Failed to update store status.');
     } finally {
       setToggleLoading(false);
     }
@@ -66,6 +68,7 @@ export default function AdminLayout({ children }) {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { label: 'Orders', icon: ClipboardList, path: '/admin/orders' },
     { label: 'Products', icon: ShoppingBag, path: '/admin/products' },
+    { label: 'Catalog Config', icon: FolderTree, path: '/admin/catalog' },
     { label: 'Inventory', icon: Layers, path: '/admin/inventory' },
     { label: 'Customers', icon: Users, path: '/admin/customers' },
     { label: 'Audit Logs', icon: ShieldCheck, path: '/admin/audit-logs' },

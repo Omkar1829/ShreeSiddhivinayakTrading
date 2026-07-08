@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials, setAuthLoading, setAuthError } from '../store/authSlice';
 import api from '../services/api';
@@ -13,6 +13,15 @@ export default function LoginModal({ isOpen, onClose }) {
   const [registrationToken, setRegistrationToken] = useState('');
   const [step, setStep] = useState(1); // 1 = Phone, 2 = OTP, 3 = Name (registration)
   const [message, setMessage] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
 
   if (!isOpen) return null;
 
@@ -32,6 +41,7 @@ export default function LoginModal({ isOpen, onClose }) {
       if (res.data.success) {
         setStep(2);
         setMessage(res.data.message || 'OTP sent successfully.');
+        setCooldown(30);
       }
     } catch (err) {
       dispatch(setAuthError(err.message || 'Failed to send verification code.'));
@@ -172,7 +182,7 @@ export default function LoginModal({ isOpen, onClose }) {
                   <input
                     type="tel"
                     maxLength={10}
-                    placeholder="9876543210"
+                    placeholder="8452921123"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                     className="w-full rounded-xl border border-gray-200 py-3 pl-16 pr-4 text-gray-900 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 text-base"
@@ -229,9 +239,14 @@ export default function LoginModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={handleRequestOtp}
-                  className="text-xs font-semibold text-primary-800 hover:underline transition"
+                  disabled={cooldown > 0}
+                  className={`text-xs font-semibold transition ${
+                    cooldown > 0 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-primary-800 hover:underline'
+                  }`}
                 >
-                  Resend OTP
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
                 </button>
               </div>
             </form>

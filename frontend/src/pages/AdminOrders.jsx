@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { downloadInvoicePdf } from '../utils/invoice';
 import { Loader2, ArrowLeft, RefreshCw, ClipboardList, MapPin, Truck, ChevronDown, Check, X, ShieldAlert, Search } from 'lucide-react';
 
@@ -161,7 +162,7 @@ export default function AdminOrders() {
         loadOrdersData();
       }
     } catch (err) {
-      alert(err.message || 'Status transition failed.');
+      toast.error(err.message || 'Status transition failed.');
       setLoading(false);
     }
   };
@@ -169,7 +170,7 @@ export default function AdminOrders() {
   const handleAssignRiderSubmit = async (e) => {
     e.preventDefault();
     if (!selectedRiderId) {
-      alert('Rider selection is required.');
+      toast.warning('Rider selection is required.');
       return;
     }
 
@@ -184,7 +185,7 @@ export default function AdminOrders() {
         setAssigningOrder(null);
       }
     } catch (err) {
-      alert(err.message || 'Rider assignment failed.');
+      toast.error(err.message || 'Rider assignment failed.');
     } finally {
       setSubmitting(false);
     }
@@ -193,7 +194,7 @@ export default function AdminOrders() {
   const handleCreateManualOrder = async (e) => {
     e.preventDefault();
     if (!selectedVariantId || !selectedQty) {
-      alert('Please select a product variant and quantity.');
+      toast.warning('Please select a product variant and quantity.');
       return;
     }
 
@@ -218,7 +219,7 @@ export default function AdminOrders() {
         setSelectedQty('1');
       }
     } catch (err) {
-      alert(err.message || 'Counter sale submission failed.');
+      toast.error(err.message || 'Counter sale submission failed.');
     } finally {
       setSubmitting(false);
     }

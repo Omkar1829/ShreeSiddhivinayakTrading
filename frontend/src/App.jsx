@@ -1,36 +1,44 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSettings, setStoreLoading } from './store/storeSlice';
 import api from './services/api';
+import { Loader2 } from 'lucide-react';
 
 // Layout Wrappers
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout';
+import ToastContainer from './components/ToastContainer';
 
-// Customer Pages
+// Customer Eager Pages
 import Home from './pages/Home';
 import Catalog from './pages/Catalog';
 import ProductDetails from './pages/ProductDetails';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
-import Orders from './pages/Orders';
-import OrderTracking from './pages/OrderTracking';
-import Profile from './pages/Profile';
-import DeliveryScanner from './pages/DeliveryScanner';
 
-// Rider Page
-import RiderDashboard from './pages/RiderDashboard';
+// Lazy Loaded Pages
+const Profile = lazy(() => import('./pages/Profile'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrderTracking = lazy(() => import('./pages/OrderTracking'));
+const DeliveryScanner = lazy(() => import('./pages/DeliveryScanner'));
+const RiderDashboard = lazy(() => import('./pages/RiderDashboard'));
 
-// Admin Pages
-import AdminDashboard from './pages/AdminDashboard';
-import AdminProducts from './pages/AdminProducts';
-import AdminInventory from './pages/AdminInventory';
-import AdminOrders from './pages/AdminOrders';
-import AdminCustomers from './pages/AdminCustomers';
-import AdminSettings from './pages/AdminSettings';
-import AdminAuditLogs from './pages/AdminAuditLogs';
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminProducts = lazy(() => import('./pages/AdminProducts'));
+const AdminInventory = lazy(() => import('./pages/AdminInventory'));
+const AdminOrders = lazy(() => import('./pages/AdminOrders'));
+const AdminCustomers = lazy(() => import('./pages/AdminCustomers'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
+const AdminCategoriesBrands = lazy(() => import('./pages/AdminCategoriesBrands'));
+
+const PageLoader = () => (
+  <div className="flex h-96 items-center justify-center">
+    <Loader2 className="animate-spin text-primary-850" size={32} />
+  </div>
+);
 
 // Helper Route Guard: Authenticated Users Only
 function PrivateRoute({ children }) {
@@ -65,36 +73,47 @@ export default function App() {
   // Case 1: Logged in as Admin -> Render dedicated Full-Fledge Admin Console Shell
   if (isAuthenticated && user?.isAdmin) {
     return (
-      <AdminLayout>
-        <Routes>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/products" element={<AdminProducts />} />
-          <Route path="/admin/inventory" element={<AdminInventory />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/customers" element={<AdminCustomers />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-          
-          {/* Allow admins to access the scanner directly from their session */}
-          <Route path="/delivery/scan" element={<DeliveryScanner />} />
-          <Route path="/delivery/verify" element={<DeliveryScanner />} />
+      <>
+        <AdminLayout>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin/inventory" element={<AdminInventory />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/customers" element={<AdminCustomers />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+              <Route path="/admin/catalog" element={<AdminCategoriesBrands />} />
+              
+              {/* Allow admins to access the scanner directly from their session */}
+              <Route path="/delivery/scan" element={<DeliveryScanner />} />
+              <Route path="/delivery/verify" element={<DeliveryScanner />} />
 
-          {/* Catch-all redirect for admin users back to dashboard */}
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </AdminLayout>
+              {/* Catch-all redirect for admin users back to dashboard */}
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </Suspense>
+        </AdminLayout>
+        <ToastContainer />
+      </>
     );
   }
 
   // Case 2: Logged in as Delivery Rider -> Render Rider Dashboard directly
   if (isAuthenticated && user?.role === 'DELIVERY') {
     return (
-      <Routes>
-        <Route path="/" element={<RiderDashboard />} />
-        
-        {/* Catch-all redirect for riders back to dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<RiderDashboard />} />
+            
+            {/* Catch-all redirect for riders back to dashboard */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+        <ToastContainer />
+      </>
     );
   }
 
@@ -106,29 +125,32 @@ export default function App() {
       {!isScannerPage && <Navbar />}
 
       <main className="flex-1">
-        <Routes>
-          {/* Customer Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/catalog/:slug" element={<ProductDetails />} />
-          <Route path="/cart" element={<Cart />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Customer Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/catalog/:slug" element={<ProductDetails />} />
+            <Route path="/cart" element={<Cart />} />
 
-          {/* Customer Private Routes */}
-          <Route path="/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
-          <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
-          <Route path="/orders/:id" element={<PrivateRoute><OrderTracking /></PrivateRoute>} />
+            {/* Customer Private Routes */}
+            <Route path="/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
+            <Route path="/orders/:id" element={<PrivateRoute><OrderTracking /></PrivateRoute>} />
 
-          {/* Unauthenticated Delivery Scanner Route */}
-          <Route path="/delivery/scan" element={<DeliveryScanner />} />
-          <Route path="/delivery/verify" element={<DeliveryScanner />} />
+            {/* Unauthenticated Delivery Scanner Route */}
+            <Route path="/delivery/scan" element={<DeliveryScanner />} />
+            <Route path="/delivery/verify" element={<DeliveryScanner />} />
 
-          {/* Catch-all redirect for guest users */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Catch-all redirect for guest users */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
       {!isScannerPage && <Footer />}
+      <ToastContainer />
     </div>
   );
 }

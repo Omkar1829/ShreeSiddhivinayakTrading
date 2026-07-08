@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { updateProfile, clearCredentials } from '../store/authSlice';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { User, MapPin, Plus, Trash2, CheckCircle, Loader2, LogOut, Camera, ShieldCheck } from 'lucide-react';
 
 export default function Profile() {
@@ -74,10 +75,10 @@ export default function Profile() {
       });
       if (res.data.success) {
         dispatch(updateProfile(res.data.user));
-        alert('Profile updated successfully!');
+        toast.success('Profile updated successfully!');
       }
     } catch (err) {
-      alert(err.message || 'Failed to update profile settings.');
+      toast.error(err.message || 'Failed to update profile settings.');
     }
   };
 
@@ -136,7 +137,7 @@ export default function Profile() {
         loadAddresses();
       }
     } catch (err) {
-      alert(err.message || 'Delete failed.');
+      toast.error(err.message || 'Delete failed.');
     }
   };
 
@@ -147,7 +148,7 @@ export default function Profile() {
         loadAddresses();
       }
     } catch (err) {
-      alert(err.message || 'Failed to set default.');
+      toast.error(err.message || 'Failed to set default.');
     }
   };
 

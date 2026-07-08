@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { clearCredentials } from '../store/authSlice';
 import api from '../services/api';
+import { toast } from '../utils/toast';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
   Truck,
@@ -120,11 +121,11 @@ export default function RiderDashboard() {
     try {
       const res = await api.patch(`/api/delivery/orders/${orderId}/pickup`);
       if (res.data.success) {
-        alert('Order picked up successfully! Drive safe.');
+        toast.success('Order picked up successfully! Drive safe.');
         loadRiderOrders(true);
       }
     } catch (err) {
-      alert(err.message || 'Pickup registration failed.');
+      toast.error(err.message || 'Pickup registration failed.');
     }
   };
 
@@ -203,7 +204,7 @@ export default function RiderDashboard() {
         const orderId = decodedText.trim();
         const res = await api.post('/api/delivery/scan-pickup', { orderId });
         if (res.data.success) {
-          alert('Pickup registered successfully via scanner!');
+          toast.success('Pickup registered successfully via scanner!');
           loadRiderOrders(true);
         }
       } else if (currentMode === 'DELIVERY') {
@@ -217,13 +218,13 @@ export default function RiderDashboard() {
 
         const res = await api.post('/api/delivery/verify', { token, codPaymentMode: currentCodPaymentMode });
         if (res.data.success) {
-          alert(`Delivery confirmed for Order ${res.data.orderNumber}!`);
+          toast.success(`Delivery confirmed for Order ${res.data.orderNumber}!`);
           loadRiderOrders(true);
         }
       }
     } catch (err) {
       const errMsg = err.response?.data?.error?.message || err.message || 'QR Verification failed.';
-      alert(errMsg);
+      toast.error(errMsg);
       setLoading(false);
     }
   };
@@ -248,7 +249,7 @@ export default function RiderDashboard() {
         codPaymentMode
       });
       if (res.data.success) {
-        alert('Delivery OTP verified. Order completed!');
+        toast.success('Delivery OTP verified. Order completed!');
         setShowOtpModal(false);
         setOtpInput('');
         loadRiderOrders(true);
