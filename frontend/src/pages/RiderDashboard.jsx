@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { clearCredentials } from '../store/authSlice';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { toast } from '../utils/toast';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
@@ -75,7 +75,7 @@ export default function RiderDashboard() {
     }
     loadRiderOrders(false);
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://api.shreesiddhivinayaktrading.in';
+    const baseUrl = API_BASE_URL;
     let eventSource = null;
     let pollInterval = null;
 

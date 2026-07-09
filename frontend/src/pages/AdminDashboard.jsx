@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { DollarSign, ShoppingBag, Users, Layers, AlertCircle, RefreshCw, Loader2, ArrowRight } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     }
     loadDashboardData(true);
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://api.shreesiddhivinayaktrading.in';
+    const baseUrl = API_BASE_URL;
     let eventSource = null;
     let pollInterval = null;
 

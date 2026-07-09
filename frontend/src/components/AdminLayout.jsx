@@ -1,10 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { setSettings } from '../store/storeSlice';
 import { clearCredentials } from '../store/authSlice';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { toast } from '../utils/toast';
+import { io } from 'socket.io-client';
+import {
+  requestNotificationPermission,
+  registerDeviceToken,
+  onForegroundMessage
+} from '../firebase/firebase';
+import {
+  fetchNotifications,
+  receiveRealtimeNotification
+} from '../store/notificationSlice';
+import NotificationCenter from './NotificationCenter';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -19,7 +30,8 @@ import {
   LogOut,
   X,
   Store,
-  Menu
+  Menu,
+  Bell
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -27,11 +39,184 @@ export default function AdminLayout({ children }) {
   const dispatch = useDispatch();
   const location = useLocation();
 
-  const { user } = useSelector((state) => state.auth);
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
   const storeSettings = useSelector((state) => state.store.settings);
+  const { unreadCount } = useSelector((state) => state.notifications);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [permissionState, setPermissionState] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
+
+  const showNativeNotification = (title, body, targetUrl = '/admin/orders') => {
+    // 1. Play Synthesized Double Chime (using Web Audio API for offline-friendly reliability)
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 Note
+      gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+      
+      // Play second higher pitch note shortly after
+      setTimeout(() => {
+        oscillator.frequency.setValueAtTime(880.00, audioCtx.currentTime); // A5 Note
+      }, 100);
+
+      setTimeout(() => {
+        oscillator.stop();
+        audioCtx.close();
+      }, 250);
+    } catch (err) {
+      console.warn('[Audio Chime Warning] Audio playback blocked by browser user gesture policy:', err.message);
+    }
+
+    // 2. Trigger native OS System Notification Banner (Windows/Android Notification Center)
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      const options = {
+        body,
+        icon: '/manifest-icon-192.png',
+        badge: '/manifest-icon-192.png',
+        data: { url: targetUrl }
+      };
+
+      // Windows 10/11 requires notifications to be bound to a Service Worker to display banners reliably
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            registration.showNotification(title, options);
+          })
+          .catch((err) => {
+            console.warn('[SW Notification Warning] Failed to show via Service Worker, using fallback:', err);
+            try {
+              new Notification(title, options);
+            } catch (fallbackErr) {
+              console.error('[Notification Error] Fallback constructor failed:', fallbackErr);
+            }
+          });
+      } else {
+        try {
+          const notif = new Notification(title, options);
+          notif.onclick = () => {
+            window.focus();
+            navigate(targetUrl);
+            notif.close();
+          };
+        } catch (err) {
+          console.error('[Notification Error] Main context constructor failed:', err);
+        }
+      }
+    }
+  };
+
+  const handleRequestPermission = async () => {
+    const permission = await Notification.requestPermission();
+    setPermissionState(permission);
+    if (permission === 'granted') {
+      const token = await requestNotificationPermission();
+      if (token) await registerDeviceToken(token);
+    }
+  };
+
+  // 1. Initial Load of Admin Notifications
+  useEffect(() => {
+    if (isAuthenticated && user?.isAdmin) {
+      dispatch(fetchNotifications({ limit: 15, offset: 0 }));
+    }
+  }, [dispatch, isAuthenticated, user]);
+
+  // 2. FCM Push Registration
+  useEffect(() => {
+    const setupFcm = async () => {
+      if (isAuthenticated && user?.isAdmin) {
+        try {
+          if (Notification.permission === 'granted') {
+            const token = await requestNotificationPermission();
+            if (token) {
+              await registerDeviceToken(token);
+            }
+          }
+        } catch (err) {
+          console.error('[AdminLayout FCM Error] Failed to initialize FCM:', err);
+        }
+      }
+    };
+    setupFcm();
+  }, [isAuthenticated, user, permissionState]);
+
+  // 3. Socket.IO & FCM Foreground Message Handlers
+  useEffect(() => {
+    if (!isAuthenticated || !user?.isAdmin) return;
+
+    let socket = null;
+    let unsubscribeFcm = () => {};
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      socket = io(API_BASE_URL, {
+        auth: { token: `Bearer ${token}` }
+      });
+
+      socket.on('connect', () => {
+        console.log('[Socket.IO Client] Connected to backend.');
+      });
+
+      // Listen for custom notifications pushed to this admin
+      socket.on('new-notification', (notif) => {
+        console.log('[Socket.IO Client] Received new-notification:', notif);
+        dispatch(receiveRealtimeNotification(notif));
+        toast.success(`${notif.title}: ${notif.message}`);
+
+        // Trigger native OS banner and sound chime
+        const target = notif.orderId ? '/admin/orders' : (notif.type === 'LOW_STOCK' ? '/admin/inventory' : '/admin');
+        showNativeNotification(notif.title, notif.message, target);
+      });
+
+      // Listen for order dispatches to reload table metrics
+      socket.on('new-order', (data) => {
+        console.log('[Socket.IO Client] new-order received:', data);
+        window.dispatchEvent(new CustomEvent('ORDER_PLACED', { detail: data }));
+      });
+
+      socket.on('order-cancelled', (data) => {
+        console.log('[Socket.IO Client] order-cancelled received:', data);
+        window.dispatchEvent(new CustomEvent('ORDER_UPDATED', { detail: data }));
+      });
+
+      socket.on('low-stock', (data) => {
+        console.log('[Socket.IO Client] low-stock alert received:', data);
+        toast.error(`LOW STOCK WARNING: ${data.message}`);
+        showNativeNotification('Low Stock Alert', data.message, '/admin/inventory');
+      });
+
+    } catch (err) {
+      console.error('[Socket.IO Connection Error] Failed to connect:', err);
+    }
+
+    // Connect FCM foreground listeners
+    try {
+      unsubscribeFcm = onForegroundMessage((payload) => {
+        console.log('[FCM Foreground] Push received:', payload);
+        toast.info(`${payload.notification.title}: ${payload.notification.body}`);
+        showNativeNotification(payload.notification.title, payload.notification.body, payload.data?.url || '/admin/orders');
+      });
+    } catch (err) {
+      console.error('[FCM Foreground Error] Listener setup failed:', err);
+    }
+
+    return () => {
+      if (socket) socket.disconnect();
+      unsubscribeFcm();
+    };
+  }, [isAuthenticated, user, dispatch]);
 
   const storeStatus = storeSettings?.store_status || 'OPEN';
   const isStoreOpen = storeStatus === 'OPEN';
@@ -207,13 +392,44 @@ export default function AdminLayout({ children }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden h-full">
-        {/* Mobile Header Bar */}
-        <header className="lg:hidden h-14 bg-[#0e110f] text-white flex items-center justify-between px-4 shrink-0 shadow-md">
-          <button onClick={() => setMobileOpen(true)} className="p-1 hover:bg-[#1b2520] rounded-lg">
-            <Menu size={20} />
-          </button>
-          <span className="font-black text-xs uppercase tracking-wider text-white">SST Console</span>
-          <div className="w-8" /> {/* Balance spacer */}
+        {/* Header Bar (Desktop & Mobile) */}
+        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6 shrink-0 shadow-xs">
+          {/* Left: Mobile Menu Toggle / Desktop Title */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1.5 text-gray-500 hover:bg-gray-100 rounded-xl transition">
+              <Menu size={20} />
+            </button>
+            <span className="hidden lg:block text-xs font-bold text-gray-500">
+              Logged in as <span className="text-primary-850 font-black">{user?.name || 'Admin'}</span>
+            </span>
+            <span className="lg:hidden font-black text-xs uppercase tracking-wider text-gray-900">SST Console</span>
+          </div>
+
+          {/* Right: Notification Toggle Badge */}
+          <div className="flex items-center gap-3">
+            {permissionState !== 'granted' && (
+              <button
+                onClick={handleRequestPermission}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-700 hover:bg-amber-100 transition shadow-xs"
+                title="Enable browser system push notification banners"
+              >
+                <Bell size={14} className="animate-bounce" />
+                Enable System Banners
+              </button>
+            )}
+            <button
+              onClick={() => setNotifOpen(true)}
+              className="relative p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-xl transition"
+              title="Notifications"
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 h-4 w-4 bg-primary-800 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-white animate-bounce">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
         </header>
 
         {/* Scrollable Page pane */}
@@ -222,6 +438,8 @@ export default function AdminLayout({ children }) {
         </main>
       </div>
 
+      {/* Notification Center sliding panel */}
+      <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { setSettings } from '../store/storeSlice';
 import api from '../services/api';
 import { toast } from '../utils/toast';
-import { Store, Loader2, ArrowLeft, Save, ShieldCheck, Users, Trash2, Plus, UserPlus } from 'lucide-react';
+import { Store, Loader2, ArrowLeft, Save, ShieldCheck, Users, Trash2, Plus, UserPlus, Bell } from 'lucide-react';
 
 export default function AdminSettings() {
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ export default function AdminSettings() {
   const [openTime, setOpenTime] = useState('08:00');
   const [closeTime, setCloseTime] = useState('21:00');
   const [storeStatus, setStoreStatus] = useState('OPEN');
+  const [testLoading, setTestLoading] = useState(false);
 
   // Staff registry states
   const [team, setTeam] = useState([]);
@@ -98,6 +99,24 @@ export default function AdminSettings() {
       toast.error(err.message || 'Failed to update store settings.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setTestLoading(true);
+    try {
+      const res = await api.post('/api/notifications/test', {
+        title: 'Test Notification Alert',
+        message: 'This is a test push notification broadcasted to all active admin devices.',
+        type: 'SYSTEM'
+      });
+      if (res.data.success) {
+        toast.success('Test push alert triggered successfully!');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to trigger test notification.');
+    } finally {
+      setTestLoading(false);
     }
   };
 
@@ -249,7 +268,16 @@ export default function AdminSettings() {
             />
           </div>
 
-          <div className="border-t border-gray-100 pt-6 flex justify-end">
+          <div className="border-t border-gray-100 pt-6 flex justify-between items-center">
+            <button
+              type="button"
+              onClick={handleSendTestPush}
+              disabled={testLoading}
+              className="rounded-xl border border-primary-200 bg-primary-50 py-3 px-6 text-xs font-bold text-primary-800 hover:bg-primary-100 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              {testLoading ? <Loader2 className="animate-spin" size={16} /> : <Bell size={16} />}
+              Send Test Push Alert
+            </button>
             <button
               type="submit"
               disabled={submitting}

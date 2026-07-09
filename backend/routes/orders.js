@@ -172,7 +172,7 @@ router.post('/', validate(orderSchema), async (req, res) => {
     const formattedAddress = `${address.recipientName}, ${address.recipientPhone}, ${address.addressLine1}, ${address.addressLine2 ? address.addressLine2 + ', ' : ''}${address.landmark ? address.landmark + ', ' : ''}${address.city}, ${address.state} - ${address.postalCode}`;
 
     // Execute order processing in single atomic transaction
-    const newOrder = await prisma.$transaction(async (tx) => {
+    const { newOrder, updatedVariants } = await prisma.$transaction(async (tx) => {
       let totalAccumulated = 0;
       const orderItemsToCreate = [];
       const stockDeductionUpdates = [];
@@ -223,7 +223,7 @@ router.post('/', validate(orderSchema), async (req, res) => {
       }
 
       // Execute stock deductions
-      await Promise.all(stockDeductionUpdates);
+      const updatedVariants = await Promise.all(stockDeductionUpdates);
 
       // Generate order number
       const orderNumber = await generateOrderNumber();
@@ -254,7 +254,7 @@ router.post('/', validate(orderSchema), async (req, res) => {
         }))
       });
 
-      return createdOrder;
+      return { newOrder: createdOrder, updatedVariants };
     });
 
     // Log audit trail
@@ -271,6 +271,30 @@ router.post('/', validate(orderSchema), async (req, res) => {
       broadcast('ORDER_PLACED', { orderId: newOrder.id, orderNumber: newOrder.orderNumber });
     } catch (err) {
       console.error('[EventHub Error] Failed to broadcast ORDER_PLACED:', err.message);
+    }
+
+    // Trigger Admin Push & Socket Notifications for New Order & Low Stock
+    try {
+      const { sendNewOrderNotification, sendLowStockNotification } = require('../services/notification.service');
+      
+      // Send new order notifications
+      sendNewOrderNotification(newOrder).catch(err => console.error('[Notification Trigger Error] sendNewOrderNotification failed:', err));
+
+      // Check for low stock on any affected variants
+      for (const variant of updatedVariants) {
+        if (variant.stock < 5) {
+          prisma.variant.findUnique({
+            where: { id: variant.id },
+            include: { product: true }
+          }).then(fullVariant => {
+            if (fullVariant) {
+              sendLowStockNotification(fullVariant).catch(err => console.error('[Notification Trigger Error] sendLowStockNotification failed:', err));
+            }
+          }).catch(err => console.error('[Low Stock Fetch Error]', err));
+        }
+      }
+    } catch (err) {
+      console.error('[Notification Trigger Error] Failed to initialize notification triggers:', err.message);
     }
 
     return res.status(201).json({
@@ -369,6 +393,14 @@ router.post('/:id/cancel', async (req, res) => {
       newValues: updatedOrder,
       userId
     });
+
+    // Trigger Admin Cancelled Order Notifications
+    try {
+      const { sendOrderCancelledNotification } = require('../services/notification.service');
+      sendOrderCancelledNotification(updatedOrder).catch(err => console.error('[Notification Trigger Error] sendOrderCancelledNotification failed:', err));
+    } catch (err) {
+      console.error('[Notification Trigger Error] Failed to trigger sendOrderCancelledNotification:', err.message);
+    }
 
     return res.json({
       success: true,

@@ -2,7 +2,8 @@ import axios from 'axios';
 import store from '../store';
 import { clearCredentials, setCredentials } from '../store/authSlice';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.shreesiddhivinayaktrading.in';
+import { API_BASE_URL } from '../config';
+export { API_BASE_URL };
 
 const api = axios.create({
   baseURL: API_BASE_URL,

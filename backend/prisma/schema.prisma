@@ -21,6 +21,8 @@ model User {
   riderOrders           Order[]                @relation("RiderOrders")
   inventoryTransactions InventoryTransaction[]
   auditLogs             AuditLog[]
+  devices               AdminDevice[]
+  notifications         Notification[]
 
   @@map("users")
 }
@@ -169,6 +171,7 @@ model Order {
   updatedAt             DateTime               @updatedAt
   items                 OrderItem[]
   inventoryTransactions InventoryTransaction[]
+  notifications         Notification[]
 
   @@map("orders")
 }
@@ -210,4 +213,33 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@map("audit_logs")
+}
+
+model AdminDevice {
+  id         String   @id @default(uuid())
+  adminId    String   @map("admin_id")
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  fcmToken   String   @unique @map("fcm_token")
+  browser    String?
+  os         String?
+  deviceType String?  @map("device_type")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_devices")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String?  @map("order_id")
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
 }

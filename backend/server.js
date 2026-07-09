@@ -14,6 +14,9 @@ const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const deliveryRoutes = require('./routes/delivery');
 const storeRoutes = require('./routes/store');
+const notificationsRoutes = require('./routes/notifications');
+const socketConfig = require('./config/socket');
+const http = require('http');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -71,6 +74,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/store', storeRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -128,7 +132,12 @@ app.use((err, req, res, next) => {
 // Server Startup
 // ----------------------------------------------------
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+
+// Initialize Socket.io
+socketConfig.init(server);
+
+server.listen(PORT, () => {
   console.log(`==================================================`);
   console.log(`  SHRI SIDDHIVINAYAK TRADING SERVER STARTED      `);
   console.log(`  Running in mode: ${process.env.NODE_ENV || 'development'}`);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { toast } from '../utils/toast';
 import { downloadInvoicePdf } from '../utils/invoice';
 import { Loader2, ArrowLeft, RefreshCw, ClipboardList, MapPin, Truck, ChevronDown, Check, X, ShieldAlert, Search } from 'lucide-react';
@@ -116,7 +116,7 @@ export default function AdminOrders() {
       return;
     }
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://api.shreesiddhivinayaktrading.in';
+    const baseUrl = API_BASE_URL;
     let eventSource = null;
     let pollInterval = null;
 
