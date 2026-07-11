@@ -62,16 +62,52 @@ const manualOrderSchema = yup.object().shape({
  * Get dashboard metrics overview
  */
 router.get('/dashboard/metrics', async (req, res) => {
+  const dateParamInput = req.query.date;
+  const mode = req.query.mode || 'week'; // 'day' or 'week'
+
+  // Parse target date (fallback to current date)
+  let dateParam = new Date();
+  if (dateParamInput) {
+    const parsed = new Date(dateParamInput);
+    if (!isNaN(parsed.getTime())) {
+      dateParam = parsed;
+    }
+  }
+
+  let startDate, endDate;
+
+  // Calculate scope range
+  if (mode === 'day') {
+    startDate = new Date(dateParam);
+    startDate.setHours(0, 0, 0, 0);
+    endDate = new Date(dateParam);
+    endDate.setHours(23, 59, 59, 999);
+  } else {
+    // Week mode: Monday to Sunday
+    const day = dateParam.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    startDate = new Date(dateParam);
+    startDate.setDate(dateParam.getDate() + diffToMonday);
+    startDate.setHours(0, 0, 0, 0);
+
+    endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    endDate.setHours(23, 59, 59, 999);
+  }
+
+  // Today's range for secondary today-specific quick stats
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
 
   try {
+    // 1. All-time global counts
     const totalOrders = await prisma.order.count();
     const totalCustomers = await prisma.user.count({ where: { isAdmin: false } });
     const totalProducts = await prisma.product.count({ where: { status: 'ACTIVE' } });
 
-    // Sum overall revenues from delivered and packed/processing orders (exclude cancelled/rejected)
-    const revenueSum = await prisma.order.aggregate({
+    const allTimeRevenueSum = await prisma.order.aggregate({
       where: {
         status: { notIn: ['CANCELLED', 'REJECTED'] }
       },
@@ -79,28 +115,81 @@ router.get('/dashboard/metrics', async (req, res) => {
         totalAmount: true
       }
     });
+    const totalRevenue = allTimeRevenueSum._sum.totalAmount || 0;
 
-    const totalRevenue = revenueSum._sum.totalAmount || 0;
-
-    // Today's orders
+    // 2. Today-specific quick metrics
     const ordersToday = await prisma.order.count({
       where: {
-        createdAt: { gte: startOfToday }
+        createdAt: { gte: startOfToday, lte: endOfToday }
       }
     });
 
-    // Today's revenue
     const revenueTodaySum = await prisma.order.aggregate({
       where: {
-        createdAt: { gte: startOfToday },
+        createdAt: { gte: startOfToday, lte: endOfToday },
         status: { notIn: ['CANCELLED', 'REJECTED'] }
       },
       _sum: {
         totalAmount: true
       }
     });
-
     const revenueToday = revenueTodaySum._sum.totalAmount || 0;
+
+    // 3. Selected date-scope aggregated metrics
+    const ordersCount = await prisma.order.count({
+      where: {
+        createdAt: { gte: startDate, lte: endDate }
+      }
+    });
+
+    const scopeRevenueSum = await prisma.order.aggregate({
+      where: {
+        createdAt: { gte: startDate, lte: endDate },
+        status: { notIn: ['CANCELLED', 'REJECTED'] }
+      },
+      _sum: {
+        totalAmount: true
+      }
+    });
+    const revenue = scopeRevenueSum._sum.totalAmount || 0;
+
+    // 4. Generate daily sales trend data for the week containing the selected date
+    const weekMon = new Date(startDate);
+    if (mode === 'day') {
+      // If we are in single day mode, still base the chart on the containing Monday-to-Sunday week
+      const day = dateParam.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      weekMon.setDate(dateParam.getDate() + diffToMonday);
+      weekMon.setHours(0, 0, 0, 0);
+    }
+
+    const chartData = [];
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    for (let i = 0; i < 7; i++) {
+      const dayStart = new Date(weekMon);
+      dayStart.setDate(weekMon.getDate() + i);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const dayRevenueSum = await prisma.order.aggregate({
+        where: {
+          createdAt: { gte: dayStart, lte: dayEnd },
+          status: { notIn: ['CANCELLED', 'REJECTED'] }
+        },
+        _sum: {
+          totalAmount: true
+        }
+      });
+
+      const dayRevenue = dayRevenueSum._sum.totalAmount || 0;
+
+      chartData.push({
+        name: weekdays[i],
+        dateStr: dayStart.toISOString().split('T')[0],
+        sales: Number(dayRevenue)
+      });
+    }
 
     return res.json({
       success: true,
@@ -110,8 +199,14 @@ router.get('/dashboard/metrics', async (req, res) => {
         totalCustomers,
         totalProducts,
         ordersToday,
-        revenueToday: Number(revenueToday)
-      }
+        revenueToday: Number(revenueToday),
+        ordersCount,
+        revenue: Number(revenue),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        mode
+      },
+      chartData
     });
   } catch (error) {
     console.error('Fetch dashboard metrics error:', error);

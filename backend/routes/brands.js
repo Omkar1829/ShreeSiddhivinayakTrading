@@ -189,7 +189,25 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       });
     }
 
-    await prisma.brand.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      const timestamp = Date.now();
+      await tx.brand.update({
+        where: { id },
+        data: {
+          name: `${oldBrand.name}-deleted-${timestamp}`,
+          slug: `${oldBrand.slug}-deleted-${timestamp}`,
+          status: 'INACTIVE',
+          deletedAt: new Date(),
+          deletedBy: req.user.id
+        }
+      });
+
+      // Clear brandId from all products associated with this brand
+      await tx.product.updateMany({
+        where: { brandId: id },
+        data: { brandId: null }
+      });
+    });
 
     await logAudit(null, {
       tableName: 'brands',
@@ -201,7 +219,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Brand deleted successfully.'
+      message: 'Brand soft-deleted successfully.'
     });
   } catch (error) {
     console.error('Delete brand error:', error);

@@ -54,6 +54,17 @@ router.get('/settings', async (req, res) => {
       return acc;
     }, {});
 
+    // Query primary admin from database to dynamically override support contact details
+    const primaryAdmin = await prisma.user.findFirst({
+      where: { isPrimaryAdmin: true },
+      select: { phone: true }
+    });
+
+    if (primaryAdmin && primaryAdmin.phone) {
+      configMap['phone_number'] = primaryAdmin.phone;
+      configMap['whatsapp_number'] = primaryAdmin.phone;
+    }
+
     // Ensure default settings are returned if DB is unseeded
     const defaultConfigs = {
       store_name: "SHRI SIDDHIVINAYAK TRADING",

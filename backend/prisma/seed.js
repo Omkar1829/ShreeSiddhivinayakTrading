@@ -11,8 +11,8 @@ async function main() {
     { key: 'store_name', value: 'SHRI SIDDHIVINAYAK TRADING' },
     { key: 'logo_url', value: '' },
     { key: 'banner_url', value: '' },
-    { key: 'phone_number', value: '+918452921123' },
-    { key: 'whatsapp_number', value: '+918452921123' },
+    { key: 'phone_number', value: '+919999999999' },
+    { key: 'whatsapp_number', value: '+919999999999' },
     { key: 'address', value: 'Shop No. 4, Opp. Krishna Tower, Uran Naka, Panvel - 410206, Maharashtra, India' },
     { key: 'opening_time', value: '08:00' },
     { key: 'closing_time', value: '21:00' },
@@ -33,12 +33,13 @@ async function main() {
   const adminPhone = '+918452921123';
   await prisma.user.upsert({
     where: { phone: adminPhone },
-    update: { isAdmin: true, name: 'Admin Yatish', role: 'ADMIN' },
+    update: { isAdmin: true, name: 'Admin Yatish', role: 'ADMIN', isPrimaryAdmin: true },
     create: {
       phone: adminPhone,
       name: 'Admin Yatish',
       isAdmin: true,
-      role: 'ADMIN'
+      role: 'ADMIN',
+      isPrimaryAdmin: true
     }
   });
 

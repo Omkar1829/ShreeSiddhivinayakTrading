@@ -204,7 +204,58 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       });
     }
 
-    await prisma.category.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      const timestamp = Date.now();
+      
+      // 1. Soft delete the category
+      await tx.category.update({
+        where: { id },
+        data: {
+          name: `${oldCategory.name}_deleted_${timestamp}`,
+          slug: `${oldCategory.slug}_deleted_${timestamp}`,
+          status: 'INACTIVE',
+          deletedAt: new Date(),
+          deletedBy: req.user.id
+        }
+      });
+
+      // 2. Fetch and soft-delete all subcategories
+      const subcategories = await tx.subcategory.findMany({
+        where: { categoryId: id }
+      });
+
+      for (const sub of subcategories) {
+        await tx.subcategory.update({
+          where: { id: sub.id },
+          data: {
+            name: `${sub.name}-deleted-${timestamp}`,
+            slug: `${sub.slug}-deleted-${timestamp}`,
+            status: 'INACTIVE',
+            deletedAt: new Date(),
+            deletedBy: req.user.id
+          }
+        });
+      }
+
+      // 3. Fetch and soft-delete all products
+      const products = await tx.product.findMany({
+        where: { categoryId: id }
+      });
+
+      for (const prod of products) {
+        await tx.product.update({
+          where: { id: prod.id },
+          data: {
+            slug: `${prod.slug}-deleted-${timestamp}`,
+            sku: prod.sku ? `${prod.sku}-deleted-${timestamp}` : null,
+            barcode: prod.barcode ? `${prod.barcode}-deleted-${timestamp}` : null,
+            status: 'INACTIVE',
+            deletedAt: new Date(),
+            deletedBy: req.user.id
+          }
+        });
+      }
+    });
 
     await logAudit(null, {
       tableName: 'categories',
@@ -216,7 +267,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Category and all associated subcategories deleted successfully.'
+      message: 'Category and all associated subcategories and products soft-deleted successfully.'
     });
   } catch (error) {
     console.error('Delete category error:', error);
@@ -360,7 +411,39 @@ router.delete('/subcategories/:id', authenticateToken, requireAdmin, async (req,
       });
     }
 
-    await prisma.subcategory.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      const timestamp = Date.now();
+
+      await tx.subcategory.update({
+        where: { id },
+        data: {
+          name: `${oldSubcategory.name}-deleted-${timestamp}`,
+          slug: `${oldSubcategory.slug}-deleted-${timestamp}`,
+          status: 'INACTIVE',
+          deletedAt: new Date(),
+          deletedBy: req.user.id
+        }
+      });
+
+      // Fetch and soft-delete all products in this subcategory
+      const products = await tx.product.findMany({
+        where: { subcategoryId: id }
+      });
+
+      for (const prod of products) {
+        await tx.product.update({
+          where: { id: prod.id },
+          data: {
+            slug: `${prod.slug}-deleted-${timestamp}`,
+            sku: prod.sku ? `${prod.sku}-deleted-${timestamp}` : null,
+            barcode: prod.barcode ? `${prod.barcode}-deleted-${timestamp}` : null,
+            status: 'INACTIVE',
+            deletedAt: new Date(),
+            deletedBy: req.user.id
+          }
+        });
+      }
+    });
 
     await logAudit(null, {
       tableName: 'subcategories',
@@ -372,7 +455,7 @@ router.delete('/subcategories/:id', authenticateToken, requireAdmin, async (req,
 
     return res.json({
       success: true,
-      message: 'Subcategory deleted successfully.'
+      message: 'Subcategory and all associated products soft-deleted successfully.'
     });
   } catch (error) {
     console.error('Delete subcategory error:', error);

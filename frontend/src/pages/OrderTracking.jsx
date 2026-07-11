@@ -11,6 +11,10 @@ export default function OrderTracking() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const storeSettings = useSelector((state) => state.store.settings);
+  const phone = storeSettings?.phone_number || '+919999999999';
+  const whatsapp = storeSettings?.whatsapp_number || '+919999999999';
+  const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, '');
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,7 +104,7 @@ export default function OrderTracking() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      
+
       {/* Back button */}
       <div className="flex items-center justify-between mb-8">
         <Link to="/orders" className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-primary-800 transition">
@@ -110,14 +114,13 @@ export default function OrderTracking() {
       </div>
 
       <div className="space-y-6">
-        
+
         {/* Core tracking status card */}
         <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black text-gray-900">Track Progress</h2>
-            <span className={`rounded-full px-3 py-1 text-xs font-black uppercase border ${
-              isCancelled ? 'bg-red-50 text-red-700 border-red-100' : 'bg-primary-50 text-primary-800 border-primary-100'
-            }`}>
+            <span className={`rounded-full px-3 py-1 text-xs font-black uppercase border ${isCancelled ? 'bg-red-50 text-red-700 border-red-100' : 'bg-primary-50 text-primary-800 border-primary-100'
+              }`}>
               {order.status}
             </span>
           </div>
@@ -128,7 +131,7 @@ export default function OrderTracking() {
               <div>
                 <h4 className="text-sm font-bold text-red-800">Order Cancelled or Rejected</h4>
                 <p className="text-xs text-red-500 mt-0.5 leading-relaxed">
-                  This order was cancelled by you or rejected by the store. If this was an error, please browse our catalog and create a new order or call Yatish at +91 8452921123.
+                  This order was cancelled by you or rejected by the store. If this was an error, please browse our catalog and create a new order or call support at {phone}.
                 </p>
               </div>
             </div>
@@ -138,8 +141,8 @@ export default function OrderTracking() {
               <div className="absolute left-4 top-1 bottom-1 w-0.5 bg-gray-100"></div>
               {/* Stepper Progress color */}
               {currentStep > 0 && (
-                <div 
-                  className="absolute left-4 top-1 w-0.5 bg-primary-800 transition-all duration-500" 
+                <div
+                  className="absolute left-4 top-1 w-0.5 bg-primary-800 transition-all duration-500"
                   style={{ height: `${(currentStep / 5) * 98}%` }}
                 ></div>
               )}
@@ -156,9 +159,8 @@ export default function OrderTracking() {
                   const isActive = idx <= currentStep;
                   return (
                     <div key={idx} className="flex items-start gap-4 pl-1.5 relative z-10">
-                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-black transition duration-300 ${
-                        isActive ? 'bg-primary-800 border-primary-800 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-400'
-                      }`}>
+                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-black transition duration-300 ${isActive ? 'bg-primary-800 border-primary-800 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-400'
+                        }`}>
                         {idx + 1}
                       </div>
                       <div className={isActive ? 'text-gray-900' : 'text-gray-450'}>
@@ -190,10 +192,10 @@ export default function OrderTracking() {
             <div className="relative flex justify-center">
               <div className="bg-white border-4 border-emerald-700 rounded-2xl p-4 shadow-xl">
                 {order.deliveryToken ? (
-                  <QRCodeSVG 
-                    value={order.deliveryToken || ''} 
-                    size={260} 
-                    level="L" 
+                  <QRCodeSVG
+                    value={order.deliveryToken || ''}
+                    size={260}
+                    level="L"
                     includeMargin={true}
                   />
                 ) : (
@@ -231,7 +233,7 @@ export default function OrderTracking() {
               Print Invoice
             </button>
           </div>
-          
+
           <div className="space-y-4 text-xs font-semibold text-gray-500">
             <div className="flex gap-3">
               <Calendar size={16} className="text-gray-450 shrink-0" />
@@ -274,7 +276,7 @@ export default function OrderTracking() {
                 </div>
               ))}
             </div>
-            
+
             <div className="flex justify-between items-center border-t border-gray-100 pt-3 text-sm font-black text-gray-900">
               <span>Amount Billed</span>
               <span>₹{Number(order.totalAmount).toFixed(2)}</span>
@@ -295,15 +297,15 @@ export default function OrderTracking() {
           )}
 
           <div className="flex gap-2.5 w-full sm:w-auto justify-center">
-            <a 
-              href="tel:+918452921123" 
+            <a
+              href={`tel:${phone}`}
               className="flex-1 sm:flex-none flex items-center justify-center gap-1 text-center rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
             >
               <Phone size={14} /> Call Partner
             </a>
-            <a 
-              href="https://wa.me/918452921123" 
-              target="_blank" 
+            <a
+              href={`https://wa.me/${cleanWhatsapp}`}
+              target="_blank"
               rel="noreferrer"
               className="flex-1 sm:flex-none flex items-center justify-center gap-1 rounded-xl bg-emerald-500 px-5 py-3 text-xs font-bold text-white hover:bg-emerald-600 transition shadow-sm"
             >

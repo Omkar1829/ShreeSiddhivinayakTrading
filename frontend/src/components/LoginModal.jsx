@@ -136,7 +136,7 @@ export default function LoginModal({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 transition-opacity">
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl transition-all duration-300">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-5">
           <div>
@@ -147,8 +147,8 @@ export default function LoginModal({ isOpen, onClose }) {
               {step === 1 ? 'Enter phone to browse & checkout' : `Code sent to +91 ${phone}`}
             </p>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
           >
             <X size={20} />
@@ -182,7 +182,7 @@ export default function LoginModal({ isOpen, onClose }) {
                   <input
                     type="tel"
                     maxLength={10}
-                    placeholder="8452921123"
+                    placeholder="9999999999"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                     className="w-full rounded-xl border border-gray-200 py-3 pl-16 pr-4 text-gray-900 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 text-base"
@@ -240,11 +240,10 @@ export default function LoginModal({ isOpen, onClose }) {
                   type="button"
                   onClick={handleRequestOtp}
                   disabled={cooldown > 0}
-                  className={`text-xs font-semibold transition ${
-                    cooldown > 0 
-                      ? 'text-gray-400 cursor-not-allowed' 
+                  className={`text-xs font-semibold transition ${cooldown > 0
+                      ? 'text-gray-400 cursor-not-allowed'
                       : 'text-primary-800 hover:underline'
-                  }`}
+                    }`}
                 >
                   {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
                 </button>

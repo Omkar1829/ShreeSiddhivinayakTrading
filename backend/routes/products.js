@@ -468,7 +468,37 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       });
     }
 
-    await prisma.product.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      const timestamp = Date.now();
+
+      await tx.product.update({
+        where: { id },
+        data: {
+          slug: `${oldProduct.slug}-deleted-${timestamp}`,
+          sku: oldProduct.sku ? `${oldProduct.sku}-deleted-${timestamp}` : null,
+          barcode: oldProduct.barcode ? `${oldProduct.barcode}-deleted-${timestamp}` : null,
+          status: 'INACTIVE',
+          deletedAt: new Date(),
+          deletedBy: req.user.id
+        }
+      });
+
+      // Soft delete all variants of this product
+      const variants = await tx.variant.findMany({
+        where: { productId: id }
+      });
+
+      for (const v of variants) {
+        await tx.variant.update({
+          where: { id: v.id },
+          data: {
+            status: 'INACTIVE',
+            deletedAt: new Date(),
+            deletedBy: req.user.id
+          }
+        });
+      }
+    });
 
     await logAudit(null, {
       tableName: 'products',
@@ -480,7 +510,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Product and all associated variants deleted successfully.'
+      message: 'Product and all associated variants soft-deleted successfully.'
     });
   } catch (error) {
     console.error('Delete product error:', error);
@@ -671,7 +701,14 @@ router.delete('/variants/:id', authenticateToken, requireAdmin, async (req, res)
       });
     }
 
-    await prisma.variant.delete({ where: { id } });
+    await prisma.variant.update({
+      where: { id },
+      data: {
+        status: 'INACTIVE',
+        deletedAt: new Date(),
+        deletedBy: req.user.id
+      }
+    });
 
     await logAudit(null, {
       tableName: 'variants',
@@ -683,7 +720,7 @@ router.delete('/variants/:id', authenticateToken, requireAdmin, async (req, res)
 
     return res.json({
       success: true,
-      message: 'Variant deleted successfully.'
+      message: 'Variant soft-deleted successfully.'
     });
   } catch (error) {
     console.error('Delete variant error:', error);

@@ -243,7 +243,13 @@ router.delete('/:id', async (req, res) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.address.delete({ where: { id } });
+      await tx.address.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: userId
+        }
+      });
 
       // If we deleted the default address, and other addresses exist, set the most recent one as default
       if (oldAddress.isDefault) {

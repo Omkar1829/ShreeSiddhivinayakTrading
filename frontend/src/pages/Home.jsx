@@ -12,6 +12,10 @@ export default function Home() {
   const { categories, loading } = useSelector((state) => state.catalog);
   const [searchTerm, setSearchTerm] = useState('');
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const storeSettings = useSelector((state) => state.store.settings);
+  const phone = storeSettings?.phone_number || '+919999999999';
+  const whatsapp = storeSettings?.whatsapp_number || '+919999999999';
+  const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, '');
 
   useEffect(() => {
     // Fetch categories and featured products
@@ -50,7 +54,7 @@ export default function Home() {
 
   return (
     <div className="space-y-10 pb-16">
-      
+
       {/* Hero Search Section */}
       <section className="relative overflow-hidden bg-primary-800 text-white py-14 px-4 sm:px-6 lg:px-8">
         <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:16px_16px]"></div>
@@ -261,13 +265,13 @@ export default function Home() {
         </p>
         <div className="flex items-center justify-center gap-4">
           <a
-            href="tel:+918452921123"
+            href={`tel:${phone}`}
             className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
           >
-            <Phone size={15} /> Call: +91 8452921123
+            <Phone size={15} /> Call: {phone}
           </a>
           <a
-            href="https://wa.me/918452921123"
+            href={`https://wa.me/${cleanWhatsapp}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-5 py-3 text-xs font-bold text-white hover:bg-emerald-600 transition shadow-sm"

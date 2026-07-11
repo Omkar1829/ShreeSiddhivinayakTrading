@@ -37,7 +37,10 @@ const authenticateToken = (req, res, next) => {
     role: decoded.role
   };
 
-  next();
+  const als = require('../config/als');
+  als.run({ userId: decoded.userId }, () => {
+    next();
+  });
 };
 
 /**

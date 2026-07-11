@@ -14,17 +14,28 @@ export default function AdminDashboard() {
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [viewMode, setViewMode] = useState('week');
+  const [chartData, setChartData] = useState([]);
 
-  const loadDashboardData = async (showLoader = false) => {
+  const loadDashboardData = async (showLoader = false, targetDate = selectedDate, targetMode = viewMode) => {
     if (showLoader) setLoading(true);
     else setRefreshing(true);
     
     try {
-      const metricsRes = await api.get('/api/admin/dashboard/metrics');
+      const metricsRes = await api.get('/api/admin/dashboard/metrics', {
+        params: {
+          date: targetDate,
+          mode: targetMode
+        }
+      });
       const lowStockRes = await api.get('/api/admin/dashboard/low-stock');
       const ordersRes = await api.get('/api/admin/orders');
 
-      if (metricsRes.data.success) setMetrics(metricsRes.data.metrics);
+      if (metricsRes.data.success) {
+        setMetrics(metricsRes.data.metrics);
+        setChartData(metricsRes.data.chartData || []);
+      }
       if (lowStockRes.data.success) setLowStock(lowStockRes.data.variants);
       if (ordersRes.data.success) setRecentOrders(ordersRes.data.orders.slice(0, 5));
     } catch (err) {
@@ -40,14 +51,14 @@ export default function AdminDashboard() {
       navigate('/');
       return;
     }
-    loadDashboardData(true);
+    loadDashboardData(true, selectedDate, viewMode);
 
     const baseUrl = API_BASE_URL;
     let eventSource = null;
     let pollInterval = null;
 
     const handleRealtimeEvent = () => {
-      loadDashboardData(false);
+      loadDashboardData(false, selectedDate, viewMode);
     };
 
     try {
@@ -61,14 +72,14 @@ export default function AdminDashboard() {
         eventSource.close();
         if (!pollInterval) {
           pollInterval = setInterval(() => {
-            loadDashboardData(false);
+            loadDashboardData(false, selectedDate, viewMode);
           }, 10000);
         }
       };
     } catch (err) {
       console.warn('[AdminDashboard] SSE initialization failed, falling back to 10s polling:', err);
       pollInterval = setInterval(() => {
-        loadDashboardData(false);
+        loadDashboardData(false, selectedDate, viewMode);
       }, 10000);
     }
 
@@ -76,18 +87,7 @@ export default function AdminDashboard() {
       if (eventSource) eventSource.close();
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [isAuthenticated, user, navigate]);
-
-  // Mock charts trend data derived from daily figures
-  const chartData = [
-    { name: 'Mon', sales: 4800 },
-    { name: 'Tue', sales: 5200 },
-    { name: 'Wed', sales: 3800 },
-    { name: 'Thu', sales: 6200 },
-    { name: 'Fri', sales: 5800 },
-    { name: 'Sat', sales: 7400 },
-    { name: 'Sun', sales: metrics?.revenue_today || 6500 }
-  ];
+  }, [isAuthenticated, user, navigate, selectedDate, viewMode]);
 
   if (loading) {
     return (
@@ -116,30 +116,85 @@ export default function AdminDashboard() {
         </button>
       </div>
 
+      {/* Date Scope Controls */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold text-gray-500">View Mode:</span>
+          <div className="inline-flex rounded-xl bg-gray-50 p-1 border border-gray-100">
+            <button
+              onClick={() => setViewMode('week')}
+              className={`rounded-lg px-4 py-2 text-xs font-black transition ${
+                viewMode === 'week'
+                  ? 'bg-primary-900 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Week View
+            </button>
+            <button
+              onClick={() => setViewMode('day')}
+              className={`rounded-lg px-4 py-2 text-xs font-black transition ${
+                viewMode === 'day'
+                  ? 'bg-primary-900 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Day View
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <span className="text-xs font-bold text-gray-500 self-start sm:self-auto">Select Date:</span>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full sm:w-auto rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-850 shadow-sm"
+          />
+          {metrics && (
+            <span className="text-[10px] font-bold text-primary-800 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2 shrink-0">
+              {viewMode === 'week' 
+                ? `Week Range: ${new Date(metrics.startDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})} - ${new Date(metrics.endDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}`
+                : `Selected Date: ${new Date(metrics.startDate).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'})}`
+              }
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* 4 Cards Grid */}
       {metrics && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Revenue */}
+          {/* Revenue */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
               <DollarSign size={24} />
             </div>
             <div>
-              <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Sales</span>
-              <span className="block text-xl font-black text-gray-900 mt-0.5">₹{metrics.totalRevenue.toLocaleString()}</span>
-              <span className="text-[10px] text-emerald-600 font-bold">Today: +₹{metrics.revenueToday}</span>
+              <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {viewMode === 'week' ? 'Weekly Sales' : 'Daily Sales'}
+              </span>
+              <span className="block text-xl font-black text-gray-900 mt-0.5">₹{metrics.revenue.toLocaleString()}</span>
+              <span className="text-[10px] text-gray-400 font-semibold">
+                All-time: ₹{metrics.totalRevenue.toLocaleString()}
+              </span>
             </div>
           </div>
 
-          {/* Total Orders */}
+          {/* Orders */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-800">
               <ShoppingBag size={24} />
             </div>
             <div>
-              <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Orders</span>
-              <span className="block text-xl font-black text-gray-900 mt-0.5">{metrics.totalOrders}</span>
-              <span className="text-[10px] text-blue-600 font-bold">Today: {metrics.ordersToday} orders</span>
+              <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {viewMode === 'week' ? 'Weekly Orders' : 'Daily Orders'}
+              </span>
+              <span className="block text-xl font-black text-gray-900 mt-0.5">{metrics.ordersCount}</span>
+              <span className="text-[10px] text-gray-400 font-semibold">
+                All-time: {metrics.totalOrders} orders
+              </span>
             </div>
           </div>
 
@@ -173,7 +228,9 @@ export default function AdminDashboard() {
 
       {/* Revenue Sales Chart */}
       <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-        <h3 className="text-base font-bold text-gray-900 mb-6">Weekly Sales Revenue Overview</h3>
+        <h3 className="text-base font-bold text-gray-900 mb-6">
+          Weekly Sales Revenue Overview ({metrics && `${new Date(metrics.startDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})} - ${new Date(metrics.endDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}`})
+        </h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>

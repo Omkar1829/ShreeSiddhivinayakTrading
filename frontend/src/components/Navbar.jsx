@@ -30,14 +30,14 @@ export default function Navbar() {
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm backdrop-blur-md bg-opacity-95">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            
+
             {/* Logo */}
             <div className="flex items-center gap-6">
               <Link to="/" className="flex flex-col">
                 <span className="font-display text-lg sm:text-xl font-extrabold tracking-tight text-primary-800 leading-none">
-                  SIDDHIVINAYAK
+                  SHREE SIDDHIVINAYAK
                 </span>
-                <span className="font-sans text-[10px] sm:text-xs font-semibold tracking-widest text-accent-600 uppercase mt-0.5">
+                <span className="font-sans text-[10px] sm:text-xs font-semibold tracking-widest text-accent-600 uppercase mt-0.5 mx-auto">
                   Trading • Since 2007
                 </span>
               </Link>
@@ -67,7 +67,7 @@ export default function Navbar() {
 
             {/* Icons Actions */}
             <div className="flex items-center gap-4">
-              
+
               {/* Cart */}
               <Link to="/cart" className="relative p-2 text-gray-600 hover:bg-gray-50 rounded-full transition">
                 <ShoppingCart size={22} />
@@ -81,7 +81,7 @@ export default function Navbar() {
               {/* Profile dropdown */}
               {isAuthenticated ? (
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex items-center gap-1.5 p-1 rounded-full hover:bg-gray-50 transition border border-gray-100 pr-3"
                   >
@@ -100,23 +100,23 @@ export default function Navbar() {
                   {/* Dropdown Menu */}
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-xl bg-white p-1.5 shadow-xl border border-gray-100 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                      <Link 
-                        to="/profile" 
+                      <Link
+                        to="/profile"
                         onClick={() => setIsDropdownOpen(false)}
                         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                       >
                         <User size={16} /> My Profile
                       </Link>
-                      <Link 
-                        to="/orders" 
+                      <Link
+                        to="/orders"
                         onClick={() => setIsDropdownOpen(false)}
                         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                       >
                         <ShoppingCart size={16} /> My Orders
                       </Link>
                       {user?.isAdmin && (
-                        <Link 
-                          to="/admin" 
+                        <Link
+                          to="/admin"
                           onClick={() => setIsDropdownOpen(false)}
                           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-accent-700 hover:bg-accent-50 transition font-semibold"
                         >
@@ -124,7 +124,7 @@ export default function Navbar() {
                         </Link>
                       )}
                       <hr className="my-1 border-gray-100" />
-                      <button 
+                      <button
                         onClick={handleLogout}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition text-left"
                       >
@@ -143,7 +143,7 @@ export default function Navbar() {
               )}
 
               {/* Mobile Menu Button */}
-              <button 
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 text-gray-600 hover:bg-gray-50 rounded-full md:hidden transition"
               >
@@ -157,7 +157,7 @@ export default function Navbar() {
         {/* Mobile Navigation Drawer */}
         {isMobileMenuOpen && (
           <div className="border-t border-gray-100 bg-white md:hidden p-4 space-y-3 shadow-inner">
-            
+
             {/* Timings Status Bar */}
             <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2.5 text-xs font-semibold">
               <span className={`h-2.5 w-2.5 rounded-full ${isStoreOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
@@ -170,23 +170,23 @@ export default function Navbar() {
             </div>
 
             <nav className="flex flex-col gap-1 text-sm font-semibold text-gray-700">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="rounded-lg px-3 py-2 hover:bg-gray-50 transition"
               >
                 Home
               </Link>
-              <Link 
-                to="/catalog" 
+              <Link
+                to="/catalog"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="rounded-lg px-3 py-2 hover:bg-gray-50 transition"
               >
                 Shop Catalog
               </Link>
               {isAuthenticated && user?.isAdmin && (
-                <Link 
-                  to="/admin" 
+                <Link
+                  to="/admin"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-2 rounded-lg px-3 py-2 text-accent-700 hover:bg-accent-50 transition"
                 >

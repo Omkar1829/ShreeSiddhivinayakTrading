@@ -1,12 +1,18 @@
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Phone, MessageSquare, MapPin, Calendar, FileText } from 'lucide-react';
 
 export default function Footer() {
+  const storeSettings = useSelector((state) => state.store.settings);
+  const phone = storeSettings?.phone_number || '+919999999999';
+  const whatsapp = storeSettings?.whatsapp_number || '+919999999999';
+  const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, '');
+
   return (
     <footer className="bg-primary-900 text-primary-100 border-t border-primary-800">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
+
           {/* About Section */}
           <div className="space-y-4">
             <h4 className="font-display text-lg font-bold text-white tracking-wide">
@@ -53,18 +59,18 @@ export default function Footer() {
               Contact Store Directly
             </h4>
             <p className="text-xs text-primary-200">
-              Need assistance placing an order, checking stock, or arranging a return? Connect with Yatish or Manas:
+              Need assistance placing an order, checking stock, or arranging a return? Connect with our support team:
             </p>
             <div className="flex flex-wrap gap-3">
-              <a 
-                href="tel:+918452921123" 
+              <a
+                href={`tel:${phone}`}
                 className="flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-primary-900 hover:bg-gray-100 transition shadow-sm"
               >
                 <Phone size={14} /> Call Store
               </a>
-              <a 
-                href="https://wa.me/918452921123" 
-                target="_blank" 
+              <a
+                href={`https://wa.me/${cleanWhatsapp}`}
+                target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-600 transition shadow-sm"
               >
