@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shree Siddhivinayak Trading - Starting Doorstep Delivery Soon!</title>
-  
+
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -48,70 +51,147 @@
       }
     }
   </script>
-  
+
   <style>
     body {
       font-family: 'Inter', sans-serif;
       background-color: #f9fafb;
       color: #111827;
     }
-    h1, h2, h3, h4, h5, h6, .font-display {
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .font-display {
       font-family: 'Outfit', sans-serif;
     }
+
     .badge-shimmer {
-      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%);
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.25) 50%, rgba(255, 255, 255, 0) 100%);
       background-size: 200% 100%;
       animation: shimmer 2.5s infinite;
     }
+
     @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
+      0% {
+        background-position: -200% 0;
+      }
+
+      100% {
+        background-position: 200% 0;
+      }
     }
+
     /* Custom Keyframe Animations for Launch Banner */
     @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-12px); }
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-12px);
+      }
     }
+
     @keyframes floatSlow {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-16px) rotate(3deg); }
+
+      0%,
+      100% {
+        transform: translateY(0px) rotate(0deg);
+      }
+
+      50% {
+        transform: translateY(-16px) rotate(3deg);
+      }
     }
+
     @keyframes drive {
-      0% { transform: translateX(-12px); }
-      50% { transform: translateX(12px); }
-      100% { transform: translateX(-12px); }
+      0% {
+        transform: translateX(-12px);
+      }
+
+      50% {
+        transform: translateX(12px);
+      }
+
+      100% {
+        transform: translateX(-12px);
+      }
     }
+
     @keyframes wheelSpin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
     }
+
     @keyframes windLines {
-      0% { opacity: 0; transform: translateX(10px); }
-      50% { opacity: 0.8; transform: translateX(-20px); }
-      100% { opacity: 0; transform: translateX(-40px); }
+      0% {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+
+      50% {
+        opacity: 0.8;
+        transform: translateX(-20px);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateX(-40px);
+      }
     }
-    .animate-float { animation: float 3.5s ease-in-out infinite; }
-    .animate-float-slow { animation: floatSlow 5s ease-in-out infinite; }
-    .animate-drive { animation: drive 3.5s ease-in-out infinite; }
-    .animate-spin-wheel { transform-origin: center; animation: wheelSpin 1.2s linear infinite; }
-    .animate-wind { animation: windLines 1.5s ease-out infinite; }
+
+    .animate-float {
+      animation: float 3.5s ease-in-out infinite;
+    }
+
+    .animate-float-slow {
+      animation: floatSlow 5s ease-in-out infinite;
+    }
+
+    .animate-drive {
+      animation: drive 3.5s ease-in-out infinite;
+    }
+
+    .animate-spin-wheel {
+      transform-origin: center;
+      animation: wheelSpin 1.2s linear infinite;
+    }
+
+    .animate-wind {
+      animation: windLines 1.5s ease-out infinite;
+    }
   </style>
 </head>
+
 <body class="min-h-screen flex flex-col antialiased selection:bg-primary-500 selection:text-white">
 
   <!-- TOP ANNOUNCEMENT BAR -->
-  <div class="bg-accent-500 text-gray-950 font-bold text-xs py-2 px-4 text-center tracking-wide flex items-center justify-center gap-2 shadow-inner">
+  <div
+    class="bg-accent-500 text-gray-950 font-bold text-xs py-2 px-4 text-center tracking-wide flex items-center justify-center gap-2 shadow-inner">
     <span class="inline-block w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
     <span>ANNOUNCEMENT: Online Doorstep Delivery Launching Very Soon Across Panvel!</span>
   </div>
 
   <!-- NAVIGATION HEADER -->
   <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
-      
+    <div
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
+
       <!-- LOGO & STORE NAME -->
       <div class="flex items-center gap-3">
-        <div class="flex items-center justify-center w-11 h-11 rounded-2xl bg-primary-800 text-white font-black text-xl shadow-md border border-primary-700">
+        <div
+          class="flex items-center justify-center w-11 h-11 rounded-2xl bg-primary-800 text-white font-black text-xl shadow-md border border-primary-700">
           ST
         </div>
         <div>
@@ -126,15 +206,21 @@
 
       <!-- CONTACT BUTTONS & QUICK DETAILS -->
       <div class="flex items-center gap-3">
-        <a href="https://wa.me/919833607049?text=Hello%20Shree%20Siddhivinayak%20Trading,%20I'd%20like%20to%20know%20about%20your%20doorstep%20delivery%20launch." 
-           target="_blank" 
-           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm">
-          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.705 1.754zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+        <a href="https://wa.me/919833607049?text=Hello%20Shree%20Siddhivinayak%20Trading,%20I'd%20like%20to%20know%20about%20your%20doorstep%20delivery%20launch."
+          target="_blank"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path
+              d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.705 1.754zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+          </svg>
           WhatsApp Inquiry
         </a>
-        <a href="tel:+919833607049" 
-           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold transition shadow-sm">
-          <svg class="w-4 h-4 text-primary-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1.01 1.01 0 011.21-.502l4.493 1.498a1.01 1.01 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+        <a href="tel:+919833607049"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold transition shadow-sm">
+          <svg class="w-4 h-4 text-primary-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1.01 1.01 0 011.21-.502l4.493 1.498a1.01 1.01 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
           Call Store
         </a>
       </div>
@@ -145,14 +231,16 @@
   <!-- 1. GREEN STORE INFORMATION CARD SECTION (FIRST SECTION) -->
   <section class="bg-primary-900 text-white py-10 px-4 sm:px-6 lg:px-8 border-b border-primary-700/60 shadow-md">
     <div class="max-w-6xl mx-auto">
-      
+
       <!-- GREEN STORE INFO CARD BLOCK -->
       <div class="bg-primary-800/90 rounded-3xl border border-emerald-500/30 p-6 sm:p-8 shadow-2xl space-y-6">
-        
+
         <!-- Header row with Store Logo & Title -->
-        <div class="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-primary-700/80 pb-5 text-center sm:text-left">
+        <div
+          class="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-primary-700/80 pb-5 text-center sm:text-left">
           <div class="flex items-center gap-3.5">
-            <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-white text-primary-900 font-black text-2xl shadow-lg shrink-0">
+            <div
+              class="flex items-center justify-center w-12 h-12 rounded-2xl bg-white text-primary-900 font-black text-2xl shadow-lg shrink-0">
               ST
             </div>
             <div>
@@ -165,7 +253,8 @@
             </div>
           </div>
 
-          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-950/80 border border-emerald-500/30 text-accent-300 text-xs font-bold shrink-0">
+          <div
+            class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-950/80 border border-emerald-500/30 text-accent-300 text-xs font-bold shrink-0">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Store Active • Open Today
           </div>
@@ -173,14 +262,21 @@
 
         <!-- 3 Columns for Address, Timings, & Direct Phone -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           <!-- Address -->
           <div class="flex items-start gap-3.5">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-700 text-emerald-300 shadow-sm">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-700 text-emerald-300 shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </div>
             <div>
-              <span class="block text-[10px] font-extrabold text-emerald-300 uppercase tracking-wider">Physical Store Address</span>
+              <span class="block text-[10px] font-extrabold text-emerald-300 uppercase tracking-wider">Physical Store
+                Address</span>
               <p class="text-xs font-semibold text-white mt-1 leading-relaxed">
                 Shop No. 4, Opp. Krishna Tower, Uran Naka, Panvel – 410206, Maharashtra
               </p>
@@ -189,11 +285,16 @@
 
           <!-- Store Timings -->
           <div class="flex items-start gap-3.5">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-700 text-emerald-300 shadow-sm">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-700 text-emerald-300 shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
             <div>
-              <span class="block text-[10px] font-extrabold text-emerald-300 uppercase tracking-wider">Store Timings</span>
+              <span class="block text-[10px] font-extrabold text-emerald-300 uppercase tracking-wider">Store
+                Timings</span>
               <p class="text-xs font-semibold text-white mt-1 leading-relaxed">
                 Monday – Sunday<br />
                 <span class="text-accent-300 font-bold">08:00 AM – 09:00 PM</span>
@@ -203,13 +304,17 @@
 
           <!-- Phone & Direct Contact -->
           <div class="flex items-start gap-3.5">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-700 text-emerald-300 shadow-sm">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1.01 1.01 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-700 text-emerald-300 shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1.01 1.01 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
             </div>
             <div>
-              <span class="block text-[10px] font-extrabold text-emerald-300 uppercase tracking-wider">Direct Shop Phone</span>
+              <span class="block text-[10px] font-extrabold text-emerald-300 uppercase tracking-wider">Direct Shop
+                Phone</span>
               <p class="text-xs font-semibold text-white mt-1 leading-relaxed">
-                +91 84529 21123<br />
                 +91 98765 43210
               </p>
             </div>
@@ -223,19 +328,27 @@
   </section>
 
   <!-- 2. MAIN ANIMATED HERO BANNER SECTION (SECOND SECTION - BELOW THE GREEN CARD) -->
-  <section class="relative bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white overflow-hidden py-14 sm:py-20 px-4 sm:px-6 lg:px-8 shadow-md">
+  <section
+    class="relative bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white overflow-hidden py-14 sm:py-20 px-4 sm:px-6 lg:px-8 shadow-md">
     <!-- Glowing background radial circles -->
-    <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute bottom-0 right-10 w-[400px] h-[400px] bg-accent-500/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:20px_20px]"></div>
-    
+    <div
+      class="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-emerald-500/15 rounded-full blur-3xl pointer-events-none">
+    </div>
+    <div
+      class="absolute bottom-0 right-10 w-[400px] h-[400px] bg-accent-500/10 rounded-full blur-3xl pointer-events-none">
+    </div>
+    <div
+      class="absolute inset-0 opacity-10 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:20px_20px]">
+    </div>
+
     <div class="relative max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-12">
-      
+
       <!-- LEFT CONTENT COLUMN -->
       <div class="w-full lg:w-7/12 text-center lg:text-left space-y-7">
-        
+
         <!-- Animated Shimmer Launch Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-950/80 border border-emerald-500/30 text-accent-300 text-xs font-extrabold uppercase tracking-widest shadow-xl">
+        <div
+          class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-950/80 border border-emerald-500/30 text-accent-300 text-xs font-extrabold uppercase tracking-widest shadow-xl">
           <span class="relative flex h-2.5 w-2.5">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-500"></span>
@@ -244,25 +357,32 @@
         </div>
 
         <!-- MAIN BIG ANIMATED TITLE -->
-        <h1 class="font-display text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
-          Starting Doorstep Delivery <span class="text-transparent bg-clip-text bg-gradient-to-r from-accent-300 via-amber-300 to-emerald-300">Soon!</span>
+        <h1
+          class="font-display text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
+          Starting Doorstep Delivery <span
+            class="text-transparent bg-clip-text bg-gradient-to-r from-accent-300 via-amber-300 to-emerald-300">Soon!</span>
         </h1>
 
         <p class="max-w-2xl text-base sm:text-lg text-primary-100 font-medium leading-relaxed mx-auto lg:mx-0">
-          We are thrilled to announce that <strong class="text-accent-300 font-bold">Shree Siddhivinayak Trading</strong> is expanding! Very soon, Panvel families can get their monthly groceries, grains, oils, and daily essentials delivered directly to their doorstep with zero hassle.
+          We are thrilled to announce that <strong class="text-accent-300 font-bold">Shree Siddhivinayak
+            Trading</strong> is expanding! Very soon, Panvel families can get their monthly groceries, grains, oils, and
+          daily essentials delivered directly to their doorstep with zero hassle.
         </p>
 
         <!-- FLOATING FEATURE PILLS -->
         <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">
-          <div class="animate-float flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-emerald-200 shadow-sm">
+          <div
+            class="animate-float flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-emerald-200 shadow-sm">
             <span>🚚</span>
             <span>Same-Day Local Delivery</span>
           </div>
-          <div class="animate-float-slow flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-200 shadow-sm">
+          <div
+            class="animate-float-slow flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-200 shadow-sm">
             <span>🌾</span>
             <span>100% Pure & Fresh Staples</span>
           </div>
-          <div class="animate-float flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-emerald-200 shadow-sm">
+          <div
+            class="animate-float flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-emerald-200 shadow-sm">
             <span>🏷️</span>
             <span>Wholesale Prices</span>
           </div>
@@ -270,10 +390,13 @@
 
         <!-- ACTION CTA BUTTON -->
         <div class="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-          <a href="https://wa.me/919833607049?text=Hi,%20please%20notify%20me%20when%20doorstep%20delivery%20starts." 
-             target="_blank" 
-             class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider transition transform hover:-translate-y-0.5 shadow-xl">
-            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.705 1.754zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          <a href="https://wa.me/919833607049?text=Hi,%20please%20notify%20me%20when%20doorstep%20delivery%20starts."
+            target="_blank"
+            class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider transition transform hover:-translate-y-0.5 shadow-xl">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path
+                d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.705 1.754zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+            </svg>
             Get Launch Updates on WhatsApp
           </a>
         </div>
@@ -282,23 +405,29 @@
 
       <!-- RIGHT ANIMATED GRAPHIC COLUMN -->
       <div class="w-full lg:w-5/12 flex flex-col items-center justify-center relative">
-        
+
         <!-- Animated Floating Card Container -->
-        <div class="relative w-full max-w-sm aspect-square bg-gradient-to-tr from-primary-800 to-primary-700/80 rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col items-center justify-between overflow-hidden">
-          
+        <div
+          class="relative w-full max-w-sm aspect-square bg-gradient-to-tr from-primary-800 to-primary-700/80 rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col items-center justify-between overflow-hidden">
+
           <!-- Animated Road & Vehicle SVG Illustration -->
           <div class="w-full h-48 relative flex items-center justify-center my-auto">
-            
+
             <!-- Wind Lines Animation -->
             <div class="absolute top-10 right-4 w-12 h-1 bg-emerald-400/40 rounded-full animate-wind"></div>
-            <div class="absolute top-16 right-8 w-16 h-1 bg-amber-400/50 rounded-full animate-wind" style="animation-delay: 0.3s"></div>
-            <div class="absolute top-24 right-2 w-10 h-1 bg-white/30 rounded-full animate-wind" style="animation-delay: 0.6s"></div>
+            <div class="absolute top-16 right-8 w-16 h-1 bg-amber-400/50 rounded-full animate-wind"
+              style="animation-delay: 0.3s"></div>
+            <div class="absolute top-24 right-2 w-10 h-1 bg-white/30 rounded-full animate-wind"
+              style="animation-delay: 0.6s"></div>
 
             <!-- Driving Scooter SVG Illustration -->
             <div class="animate-drive relative z-10">
-              <svg class="w-40 h-40 text-emerald-300 drop-shadow-lg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg class="w-40 h-40 text-emerald-300 drop-shadow-lg" viewBox="0 0 100 100" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
                 <!-- Scooter Body -->
-                <path d="M25 65 H75 C78 65 80 62 80 58 V45 C80 42 77 40 74 40 H50 L42 25 H20 V32 H36 L42 42 H22 C18 42 15 45 15 49 V58 C15 62 18 65 22 65 Z" fill="#10b981" />
+                <path
+                  d="M25 65 H75 C78 65 80 62 80 58 V45 C80 42 77 40 74 40 H50 L42 25 H20 V32 H36 L42 42 H22 C18 42 15 45 15 49 V58 C15 62 18 65 22 65 Z"
+                  fill="#10b981" />
                 <!-- Grocery Delivery Box -->
                 <rect x="52" y="22" width="24" height="20" rx="3" fill="#f59e0b" stroke="#ffffff" stroke-width="2" />
                 <text x="56" y="36" font-size="9" font-weight="bold" fill="#ffffff">GROCERY</text>
@@ -332,7 +461,8 @@
 
           <!-- Bottom Card Caption -->
           <div class="text-center pt-2 border-t border-white/10 w-full">
-            <span class="block text-[10px] font-black uppercase tracking-widest text-accent-300">Fast Local Delivery</span>
+            <span class="block text-[10px] font-black uppercase tracking-widest text-accent-300">Fast Local
+              Delivery</span>
             <p class="text-xs font-extrabold text-white mt-0.5">Straight from Panvel Shop to Your Doorstep</p>
           </div>
 
@@ -345,11 +475,12 @@
 
   <!-- PRODUCTS & CATEGORIES SECTION -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
-    
+
     <!-- SECTION HEADER -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 pb-6">
       <div>
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary-50 text-primary-800 text-xs font-bold mb-2">
+        <div
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary-50 text-primary-800 text-xs font-bold mb-2">
           <span>🛒 Wholesale & Retail Catalog</span>
         </div>
         <h2 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
@@ -363,13 +494,13 @@
       <!-- LIVE SEARCH INPUT -->
       <div class="w-full md:w-80">
         <div class="relative">
-          <svg class="absolute left-3.5 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input 
-            type="text" 
-            id="searchInput" 
-            placeholder="Search rice, atta, oil, ghee..." 
-            class="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-800 shadow-sm"
-          />
+          <svg class="absolute left-3.5 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search rice, atta, oil, ghee..."
+            class="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-800 shadow-sm" />
         </div>
       </div>
     </div>
@@ -378,7 +509,8 @@
     <div class="space-y-3">
       <h3 class="text-xs font-extrabold text-gray-400 uppercase tracking-wider">Filter by Category</h3>
       <div id="categoryContainer" class="flex flex-wrap gap-2">
-        <button data-slug="all" class="cat-pill active px-4 py-2 rounded-xl text-xs font-bold bg-primary-800 text-white shadow-sm transition">
+        <button data-slug="all"
+          class="cat-pill active px-4 py-2 rounded-xl text-xs font-bold bg-primary-800 text-white shadow-sm transition">
           All Products
         </button>
         <!-- Category buttons dynamically rendered -->
@@ -396,17 +528,19 @@
   <footer class="bg-gray-900 text-white border-t border-gray-800 mt-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
+
         <!-- Brand Info -->
         <div class="space-y-3">
           <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-800 text-white font-black text-lg">
+            <div
+              class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-800 text-white font-black text-lg">
               ST
             </div>
             <span class="font-display font-black text-lg tracking-tight">Shree Siddhivinayak Trading</span>
           </div>
           <p class="text-xs text-gray-400 leading-relaxed">
-            Your trusted neighborhood Kirana store in Panvel. Bringing you quality grains, pulses, spices, and daily kitchen staples at honest prices.
+            Your trusted neighborhood Kirana store in Panvel. Bringing you quality grains, pulses, spices, and daily
+            kitchen staples at honest prices.
           </p>
         </div>
 
@@ -423,11 +557,11 @@
         <div class="space-y-3">
           <h4 class="text-xs font-extrabold uppercase tracking-wider text-accent-400">Doorstep Delivery Service</h4>
           <p class="text-xs text-gray-300 leading-relaxed">
-            Online ordering will go live shorty. Stay tuned for fast, same-day delivery right to your doorstep in Panvel!
+            Online ordering will go live shorty. Stay tuned for fast, same-day delivery right to your doorstep in
+            Panvel!
           </p>
-          <a href="https://wa.me/919833607049?text=Hi,%20please%20notify%20me%20when%20doorstep%20delivery%20starts." 
-             target="_blank" 
-             class="inline-block text-xs font-bold text-emerald-400 hover:underline">
+          <a href="https://wa.me/919833607049?text=Hi,%20please%20notify%20me%20when%20doorstep%20delivery%20starts."
+            target="_blank" class="inline-block text-xs font-bold text-emerald-400 hover:underline">
             📲 Click here to get notified on WhatsApp →
           </a>
         </div>
@@ -438,275 +572,288 @@
         © 2026 Shree Siddhivinayak Trading. All rights reserved. • Serving Panvel since 2007.
       </div>
     </div>
-  <!-- Product Detail Modal -->
-  <div id="productModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative flex flex-col md:flex-row p-6 md:p-8 gap-6 md:gap-8">
-      <!-- Close Button -->
-      <button onclick="closeProductModal()" class="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 text-gray-700 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm transition cursor-pointer z-10">
-        ✕
-      </button>
-      
-      <!-- Left Side: Product Image -->
-      <div class="w-full md:w-1/2 bg-gray-50 rounded-2xl p-6 flex items-center justify-center aspect-square overflow-hidden border border-gray-100">
-        <img id="modalProductImage" src="" alt="" class="max-h-[300px] md:max-h-[400px] object-contain transition duration-300" onerror="this.onerror=null; this.src=window.DEFAULT_IMAGE;" />
-      </div>
-      
-      <!-- Right Side: Details -->
-      <div class="w-full md:w-1/2 flex flex-col justify-between space-y-5">
-        <div class="space-y-4">
-          <!-- Brand Badge -->
-          <span id="modalProductBrand" class="inline-block text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg">
-            Siddhivinayak
-          </span>
-          
-          <!-- Title -->
-          <h2 id="modalProductName" class="text-xl md:text-2xl font-black text-gray-900 leading-snug">
-            Product Name
-          </h2>
-          
-          <!-- Category & Subcategory -->
-          <div class="text-xs text-gray-500">
-            <span>Category: </span><span id="modalProductCategory" class="font-bold text-gray-700">Groceries</span>
-            <span class="mx-1.5">•</span>
-            <span>Subcategory: </span><span id="modalProductSubcategory" class="font-bold text-gray-700">Rice</span>
-          </div>
-          
-          <!-- Price & Stock Badge -->
-          <div class="flex items-center gap-3 pt-2">
-            <span id="modalProductPrice" class="text-2xl md:text-3xl font-black text-gray-900">₹78.00</span>
-            <span id="modalProductStock" class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg shadow-xs">
-              In Stock (200 left)
+    <!-- Product Detail Modal -->
+    <div id="productModal"
+      class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div
+        class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative flex flex-col md:flex-row p-6 md:p-8 gap-6 md:gap-8">
+        <!-- Close Button -->
+        <button onclick="closeProductModal()"
+          class="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 text-gray-700 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm transition cursor-pointer z-10">
+          ✕
+        </button>
+
+        <!-- Left Side: Product Image -->
+        <div
+          class="w-full md:w-1/2 bg-gray-50 rounded-2xl p-6 flex items-center justify-center aspect-square overflow-hidden border border-gray-100">
+          <img id="modalProductImage" src="" alt=""
+            class="max-h-[300px] md:max-h-[400px] object-contain transition duration-300"
+            onerror="this.onerror=null; this.src=window.DEFAULT_IMAGE;" />
+        </div>
+
+        <!-- Right Side: Details -->
+        <div class="w-full md:w-1/2 flex flex-col justify-between space-y-5">
+          <div class="space-y-4">
+            <!-- Brand Badge -->
+            <span id="modalProductBrand"
+              class="inline-block text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg">
+              Siddhivinayak
             </span>
-          </div>
-          
-          <!-- Description -->
-          <div class="space-y-1.5">
-            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Info</h4>
-            <p id="modalProductDesc" class="text-xs leading-relaxed text-gray-600">
-              Premium choice wada Surti Kolam rice.
-            </p>
-          </div>
-          
-          <!-- Variants / Options -->
-          <div class="space-y-2">
-            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Option</h4>
-            <div id="modalVariantsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <!-- Dynamic variant buttons -->
+
+            <!-- Title -->
+            <h2 id="modalProductName" class="text-xl md:text-2xl font-black text-gray-900 leading-snug">
+              Product Name
+            </h2>
+
+            <!-- Category & Subcategory -->
+            <div class="text-xs text-gray-500">
+              <span>Category: </span><span id="modalProductCategory" class="font-bold text-gray-700">Groceries</span>
+              <span class="mx-1.5">•</span>
+              <span>Subcategory: </span><span id="modalProductSubcategory" class="font-bold text-gray-700">Rice</span>
+            </div>
+
+            <!-- Price & Stock Badge -->
+            <div class="flex items-center gap-3 pt-2">
+              <span id="modalProductPrice" class="text-2xl md:text-3xl font-black text-gray-900">₹78.00</span>
+              <span id="modalProductStock"
+                class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg shadow-xs">
+                In Stock (200 left)
+              </span>
+            </div>
+
+            <!-- Description -->
+            <div class="space-y-1.5">
+              <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Info</h4>
+              <p id="modalProductDesc" class="text-xs leading-relaxed text-gray-600">
+                Premium choice wada Surti Kolam rice.
+              </p>
+            </div>
+
+            <!-- Variants / Options -->
+            <div class="space-y-2">
+              <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Option</h4>
+              <div id="modalVariantsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Dynamic variant buttons -->
+              </div>
             </div>
           </div>
-        </div>
-        
-        <!-- Action Buttons & Badging -->
-        <div class="space-y-4 pt-4 border-t border-gray-100">
 
-          
-          <!-- Trust/Security Banner -->
-          <div class="flex items-start gap-2 bg-emerald-50/50 border border-emerald-100 rounded-xl p-3">
-            <svg class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            <p class="text-[10px] leading-relaxed text-gray-500">
-              Secure counter pickup or free neighborhood doorstep delivery. Inspected and verified fresh by Siddhivinayak partners Yatish and Manas.
-            </p>
+          <!-- Action Buttons & Badging -->
+          <div class="space-y-4 pt-4 border-t border-gray-100">
+
+
+            <!-- Trust/Security Banner -->
+            <div class="flex items-start gap-2 bg-emerald-50/50 border border-emerald-100 rounded-xl p-3">
+              <svg class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.5"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <p class="text-[10px] leading-relaxed text-gray-500">
+                Secure counter pickup or free neighborhood doorstep delivery. Inspected and verified fresh by
+                Siddhivinayak partners Yatish and Manas.
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- DYNAMIC DATA SCRIPT -->
-  <script>
-    // Fallback static dataset so the page works 100% standalone
-    const FALLBACK_CATEGORIES = [
-      { id: 'cat-1', name: 'Atta & Flours', slug: 'atta-flours' },
-      { id: 'cat-2', name: 'Rice & Grains', slug: 'rice-grains' },
-      { id: 'cat-3', name: 'Dal & Pulses', slug: 'dal-pulses' },
-      { id: 'cat-4', name: 'Edible Oils & Ghee', slug: 'edible-oils-ghee' },
-      { id: 'cat-5', name: 'Spices & Masalas', slug: 'spices-masalas' },
-      { id: 'cat-6', name: 'Sugar, Jaggery & Salt', slug: 'sugar-jaggery-salt' },
-      { id: 'cat-7', name: 'Dry Fruits & Nuts', slug: 'dry-fruits-nuts' }
-    ];
+    <!-- DYNAMIC DATA SCRIPT -->
+    <script>
+      // Fallback static dataset so the page works 100% standalone
+      const FALLBACK_CATEGORIES = [
+        { id: 'cat-1', name: 'Atta & Flours', slug: 'atta-flours' },
+        { id: 'cat-2', name: 'Rice & Grains', slug: 'rice-grains' },
+        { id: 'cat-3', name: 'Dal & Pulses', slug: 'dal-pulses' },
+        { id: 'cat-4', name: 'Edible Oils & Ghee', slug: 'edible-oils-ghee' },
+        { id: 'cat-5', name: 'Spices & Masalas', slug: 'spices-masalas' },
+        { id: 'cat-6', name: 'Sugar, Jaggery & Salt', slug: 'sugar-jaggery-salt' },
+        { id: 'cat-7', name: 'Dry Fruits & Nuts', slug: 'dry-fruits-nuts' }
+      ];
 
-    const FALLBACK_PRODUCTS = [
-      {
-        id: 'p-1',
-        name: 'Premium Sharbati Wheat Atta (Whole Wheat)',
-        categorySlug: 'atta-flours',
-        categoryName: 'Atta & Flours',
-        image: './images/wheat.png',
-        variants: [{ weight: '5 kg', price: 260 }, { weight: '10 kg', price: 495 }]
-      },
-      {
-        id: 'p-2',
-        name: 'Kolam Raw Rice (Surti Kolam)',
-        categorySlug: 'rice-grains',
-        categoryName: 'Rice & Grains',
-        image: './images/rice.png',
-        variants: [{ weight: '5 kg', price: 340 }, { weight: '10 kg', price: 650 }, { weight: '26 kg', price: 1620 }]
-      },
-      {
-        id: 'p-3',
-        name: 'Unpolished Toor Dal (Arhar Dal)',
-        categorySlug: 'dal-pulses',
-        categoryName: 'Dal & Pulses',
-        image: './images/toor_dal.png',
-        variants: [{ weight: '1 kg', price: 165 }, { weight: '5 kg', price: 810 }]
-      },
-      {
-        id: 'p-4',
-        name: 'Pure Cow Ghee (A2 Quality)',
-        categorySlug: 'edible-oils-ghee',
-        categoryName: 'Edible Oils & Ghee',
-        image: './images/ghee.png',
-        variants: [{ weight: '500 ml', price: 340 }, { weight: '1 L', price: 650 }]
-      },
-      {
-        id: 'p-5',
-        name: 'Pure Groundnut Oil (Filtered)',
-        categorySlug: 'edible-oils-ghee',
-        categoryName: 'Edible Oils & Ghee',
-        image: './images/oil.png',
-        variants: [{ weight: '1 L Pouch', price: 185 }, { weight: '5 L Can', price: 890 }]
-      },
-      {
-        id: 'p-6',
-        name: 'Special Malvani Masala (Handcrafted Spices)',
-        categorySlug: 'spices-masalas',
-        categoryName: 'Spices & Masalas',
-        image: './images/masala.png',
-        variants: [{ weight: '250 g', price: 120 }, { weight: '500 g', price: 230 }]
-      },
-      {
-        id: 'p-7',
-        name: 'Organic Kolhapuri Jaggery (Gur Block)',
-        categorySlug: 'sugar-jaggery-salt',
-        categoryName: 'Sugar, Jaggery & Salt',
-        image: './images/jaggery.png',
-        variants: [{ weight: '1 kg', price: 75 }, { weight: '5 kg', price: 350 }]
-      },
-      {
-        id: 'p-8',
-        name: 'Jumbo Premium California Almonds (Badam)',
-        categorySlug: 'dry-fruits-nuts',
-        categoryName: 'Dry Fruits & Nuts',
-        image: './images/dry_fruits.png',
-        variants: [{ weight: '250 g', price: 240 }, { weight: '500 g', price: 460 }, { weight: '1 kg', price: 890 }]
-      }
-    ];
-
-    window.DEFAULT_IMAGE = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%"><rect width="100%" height="100%" fill="%23f3f4f6"/><circle cx="200" cy="180" r="60" fill="%23e5e7eb"/><path d="M150,290 C150,250 170,230 200,230 C230,230 250,250 250,290" fill="%23e5e7eb"/><text x="50%" y="330" font-family="sans-serif" font-size="16" font-weight="600" fill="%239ca3af" text-anchor="middle">No Image</text></svg>`;
-
-    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:5050'
-      : 'https://api.shreesiddhivinayaktrading.in';
-
-    let allCategories = [];
-    let allProducts = [];
-    let currentCategory = 'all';
-    let searchQuery = '';
-    let selectedVariants = {};
-    let currentModalProductId = null;
-    let selectedModalVariantIdx = 0;
-
-    // Load data from live API if running, else use static fallback
-    async function loadData() {
-      try {
-        const [catRes, prodRes] = await Promise.all([
-          fetch(`${API_BASE}/api/categories`).then(r => r.json()).catch(() => null),
-          fetch(`${API_BASE}/api/products`).then(r => r.json()).catch(() => null)
-        ]);
-
-        if (catRes && catRes.success && catRes.categories && catRes.categories.length > 0) {
-          allCategories = catRes.categories.map(c => ({ id: c.id, name: c.name, slug: c.slug }));
-        } else {
-          allCategories = FALLBACK_CATEGORIES;
+      const FALLBACK_PRODUCTS = [
+        {
+          id: 'p-1',
+          name: 'Premium Sharbati Wheat Atta (Whole Wheat)',
+          categorySlug: 'atta-flours',
+          categoryName: 'Atta & Flours',
+          image: './images/wheat.png',
+          variants: [{ weight: '5 kg', price: 260 }, { weight: '10 kg', price: 495 }]
+        },
+        {
+          id: 'p-2',
+          name: 'Kolam Raw Rice (Surti Kolam)',
+          categorySlug: 'rice-grains',
+          categoryName: 'Rice & Grains',
+          image: './images/rice.png',
+          variants: [{ weight: '5 kg', price: 340 }, { weight: '10 kg', price: 650 }, { weight: '26 kg', price: 1620 }]
+        },
+        {
+          id: 'p-3',
+          name: 'Unpolished Toor Dal (Arhar Dal)',
+          categorySlug: 'dal-pulses',
+          categoryName: 'Dal & Pulses',
+          image: './images/toor_dal.png',
+          variants: [{ weight: '1 kg', price: 165 }, { weight: '5 kg', price: 810 }]
+        },
+        {
+          id: 'p-4',
+          name: 'Pure Cow Ghee (A2 Quality)',
+          categorySlug: 'edible-oils-ghee',
+          categoryName: 'Edible Oils & Ghee',
+          image: './images/ghee.png',
+          variants: [{ weight: '500 ml', price: 340 }, { weight: '1 L', price: 650 }]
+        },
+        {
+          id: 'p-5',
+          name: 'Pure Groundnut Oil (Filtered)',
+          categorySlug: 'edible-oils-ghee',
+          categoryName: 'Edible Oils & Ghee',
+          image: './images/oil.png',
+          variants: [{ weight: '1 L Pouch', price: 185 }, { weight: '5 L Can', price: 890 }]
+        },
+        {
+          id: 'p-6',
+          name: 'Special Malvani Masala (Handcrafted Spices)',
+          categorySlug: 'spices-masalas',
+          categoryName: 'Spices & Masalas',
+          image: './images/masala.png',
+          variants: [{ weight: '250 g', price: 120 }, { weight: '500 g', price: 230 }]
+        },
+        {
+          id: 'p-7',
+          name: 'Organic Kolhapuri Jaggery (Gur Block)',
+          categorySlug: 'sugar-jaggery-salt',
+          categoryName: 'Sugar, Jaggery & Salt',
+          image: './images/jaggery.png',
+          variants: [{ weight: '1 kg', price: 75 }, { weight: '5 kg', price: 350 }]
+        },
+        {
+          id: 'p-8',
+          name: 'Jumbo Premium California Almonds (Badam)',
+          categorySlug: 'dry-fruits-nuts',
+          categoryName: 'Dry Fruits & Nuts',
+          image: './images/dry_fruits.png',
+          variants: [{ weight: '250 g', price: 240 }, { weight: '500 g', price: 460 }, { weight: '1 kg', price: 890 }]
         }
+      ];
 
-        if (prodRes && prodRes.success && prodRes.products && prodRes.products.length > 0) {
-          allProducts = prodRes.products.map(p => ({
-            id: p.id,
-            name: p.name,
-            categorySlug: p.category ? p.category.slug : 'general',
-            categoryName: p.category ? p.category.name : 'Staples',
-            subcategoryName: p.subcategory ? p.subcategory.name : 'General',
-            brandName: p.brand ? p.brand.name : 'Siddhivinayak',
-            description: p.description || 'Premium quality daily kitchen staples sourced with care for freshness, purity, and honest pricing.',
-            image: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${API_BASE}${p.imageUrl}`) : window.DEFAULT_IMAGE,
-            variants: p.variants && p.variants.length > 0 
-              ? p.variants.map(v => ({ weight: v.attributeValue || '1 Pack', price: v.price || 0, stock: v.stock !== undefined ? v.stock : 200 }))
-              : [{ weight: '1 Pack', price: p.basePrice || 0, stock: 200 }]
-          }));
-        } else {
+      window.DEFAULT_IMAGE = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%"><rect width="100%" height="100%" fill="%23f3f4f6"/><circle cx="200" cy="180" r="60" fill="%23e5e7eb"/><path d="M150,290 C150,250 170,230 200,230 C230,230 250,250 250,290" fill="%23e5e7eb"/><text x="50%" y="330" font-family="sans-serif" font-size="16" font-weight="600" fill="%239ca3af" text-anchor="middle">No Image</text></svg>`;
+
+      const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5050'
+        : 'https://api.shreesiddhivinayaktrading.in';
+
+      let allCategories = [];
+      let allProducts = [];
+      let currentCategory = 'all';
+      let searchQuery = '';
+      let selectedVariants = {};
+      let currentModalProductId = null;
+      let selectedModalVariantIdx = 0;
+
+      // Load data from live API if running, else use static fallback
+      async function loadData() {
+        try {
+          const [catRes, prodRes] = await Promise.all([
+            fetch(`${API_BASE}/api/categories`).then(r => r.json()).catch(() => null),
+            fetch(`${API_BASE}/api/products`).then(r => r.json()).catch(() => null)
+          ]);
+
+          if (catRes && catRes.success && catRes.categories && catRes.categories.length > 0) {
+            allCategories = catRes.categories.map(c => ({ id: c.id, name: c.name, slug: c.slug }));
+          } else {
+            allCategories = FALLBACK_CATEGORIES;
+          }
+
+          if (prodRes && prodRes.success && prodRes.products && prodRes.products.length > 0) {
+            allProducts = prodRes.products.map(p => ({
+              id: p.id,
+              name: p.name,
+              categorySlug: p.category ? p.category.slug : 'general',
+              categoryName: p.category ? p.category.name : 'Staples',
+              subcategoryName: p.subcategory ? p.subcategory.name : 'General',
+              brandName: p.brand ? p.brand.name : 'Siddhivinayak',
+              description: p.description || 'Premium quality daily kitchen staples sourced with care for freshness, purity, and honest pricing.',
+              image: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${API_BASE}${p.imageUrl}`) : window.DEFAULT_IMAGE,
+              variants: p.variants && p.variants.length > 0
+                ? p.variants.map(v => ({ weight: v.attributeValue || '1 Pack', price: v.price || 0, stock: v.stock !== undefined ? v.stock : 200 }))
+                : [{ weight: '1 Pack', price: p.basePrice || 0, stock: 200 }]
+            }));
+          } else {
+            allProducts = FALLBACK_PRODUCTS.map(p => ({
+              id: p.id,
+              name: p.name,
+              categorySlug: p.categorySlug,
+              categoryName: p.categoryName,
+              subcategoryName: 'Staples',
+              brandName: 'Siddhivinayak',
+              description: 'Premium quality daily kitchen staples sourced with care for freshness, purity, and honest pricing.',
+              image: p.image,
+              variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price, stock: 200 }))
+            }));
+          }
+        } catch (err) {
+          allCategories = FALLBACK_CATEGORIES;
           allProducts = FALLBACK_PRODUCTS.map(p => ({
-            id: p.id,
-            name: p.name,
-            categorySlug: p.categorySlug,
-            categoryName: p.categoryName,
-            subcategoryName: 'Staples',
-            brandName: 'Siddhivinayak',
-            description: 'Premium quality daily kitchen staples sourced with care for freshness, purity, and honest pricing.',
-            image: p.image,
+            ...p,
             variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price, stock: 200 }))
           }));
         }
-      } catch (err) {
-        allCategories = FALLBACK_CATEGORIES;
-        allProducts = FALLBACK_PRODUCTS.map(p => ({
-          ...p,
-          variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price, stock: 200 }))
-        }));
+
+        // Initialize selected variants
+        allProducts.forEach(p => {
+          selectedVariants[p.id] = 0;
+        });
+
+        renderCategories();
+        renderProducts();
       }
 
-      // Initialize selected variants
-      allProducts.forEach(p => {
-        selectedVariants[p.id] = 0;
-      });
-
-      renderCategories();
-      renderProducts();
-    }
-
-    // Render Category Pills
-    function renderCategories() {
-      const container = document.getElementById('categoryContainer');
-      let html = `
+      // Render Category Pills
+      function renderCategories() {
+        const container = document.getElementById('categoryContainer');
+        let html = `
         <button data-slug="all" onclick="selectCategory('all')" 
           class="cat-pill ${currentCategory === 'all' ? 'bg-primary-800 text-white font-black' : 'bg-white text-gray-700 hover:bg-gray-100 font-bold border border-gray-200'} px-4 py-2 rounded-xl text-xs transition shadow-sm">
           All Categories
         </button>
       `;
 
-      allCategories.forEach(cat => {
-        const isActive = currentCategory === cat.slug;
-        html += `
+        allCategories.forEach(cat => {
+          const isActive = currentCategory === cat.slug;
+          html += `
           <button data-slug="${cat.slug}" onclick="selectCategory('${cat.slug}')" 
             class="cat-pill ${isActive ? 'bg-primary-800 text-white font-black' : 'bg-white text-gray-700 hover:bg-gray-100 font-bold border border-gray-200'} px-4 py-2 rounded-xl text-xs transition shadow-sm">
             ${cat.name}
           </button>
         `;
-      });
+        });
 
-      container.innerHTML = html;
-    }
+        container.innerHTML = html;
+      }
 
-    function selectCategory(slug) {
-      currentCategory = slug;
-      renderCategories();
-      renderProducts();
-    }
+      function selectCategory(slug) {
+        currentCategory = slug;
+        renderCategories();
+        renderProducts();
+      }
 
-    // Render Product Cards Grid
-    function renderProducts() {
-      const grid = document.getElementById('productsGrid');
-      
-      const filtered = allProducts.filter(p => {
-        const matchesCategory = currentCategory === 'all' || p.categorySlug === currentCategory;
-        const matchesSearch = searchQuery === '' || 
-          p.name.toLowerCase().includes(searchQuery) || 
-          p.categoryName.toLowerCase().includes(searchQuery);
-        return matchesCategory && matchesSearch;
-      });
+      // Render Product Cards Grid
+      function renderProducts() {
+        const grid = document.getElementById('productsGrid');
 
-      if (filtered.length === 0) {
-        grid.innerHTML = `
+        const filtered = allProducts.filter(p => {
+          const matchesCategory = currentCategory === 'all' || p.categorySlug === currentCategory;
+          const matchesSearch = searchQuery === '' ||
+            p.name.toLowerCase().includes(searchQuery) ||
+            p.categoryName.toLowerCase().includes(searchQuery);
+          return matchesCategory && matchesSearch;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
           <div class="col-span-full py-16 text-center space-y-3 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <div class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 font-bold text-xl">
               🔍
@@ -715,15 +862,15 @@
             <p class="text-xs text-gray-500 max-w-sm mx-auto">Try adjusting your search query or select another category filter.</p>
           </div>
         `;
-        return;
-      }
+          return;
+        }
 
-      let html = '';
-      filtered.forEach(prod => {
-        const selectedIdx = selectedVariants[prod.id] !== undefined ? selectedVariants[prod.id] : 0;
-        const currentVariant = prod.variants && prod.variants.length > selectedIdx ? prod.variants[selectedIdx] : { weight: '1 Pack', price: 0 };
-        
-        html += `
+        let html = '';
+        filtered.forEach(prod => {
+          const selectedIdx = selectedVariants[prod.id] !== undefined ? selectedVariants[prod.id] : 0;
+          const currentVariant = prod.variants && prod.variants.length > selectedIdx ? prod.variants[selectedIdx] : { weight: '1 Pack', price: 0 };
+
+          html += `
           <div onclick="openProductModal('${prod.id}')" class="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group cursor-pointer">
             
             <!-- Image & Category Badge -->
@@ -771,144 +918,145 @@
 
           </div>
         `;
-      });
+        });
 
-      grid.innerHTML = html;
-    }
-
-    // Interactive variant selection
-    window.selectProductVariant = function(prodId, varIndex) {
-      const prod = allProducts.find(p => p.id === prodId);
-      if (!prod) return;
-      
-      selectedVariants[prodId] = varIndex;
-      
-      const priceEl = document.getElementById(`price-${prodId}`);
-      if (priceEl) {
-        priceEl.innerText = `₹${prod.variants[varIndex].price}`;
-      }
-      
-      const pillsContainer = document.getElementById(`pills-${prodId}`);
-      if (pillsContainer) {
-        const pills = pillsContainer.getElementsByClassName('var-pill');
-        for (let i = 0; i < pills.length; i++) {
-          if (i === varIndex) {
-            pills[i].className = 'var-pill text-[10px] font-bold bg-primary-50 text-primary-800 border border-primary-200 px-2.5 py-1 rounded-md cursor-pointer transition';
-          } else {
-            pills[i].className = 'var-pill text-[10px] font-bold bg-gray-100 text-gray-600 border border-transparent px-2.5 py-1 rounded-md cursor-pointer transition';
-          }
-        }
-      }
-    };
-
-    // Modal Control Logic
-    window.openProductModal = function(prodId) {
-      const prod = allProducts.find(p => p.id === prodId);
-      if (!prod) return;
-
-      currentModalProductId = prodId;
-      selectedModalVariantIdx = selectedVariants[prodId] !== undefined ? selectedVariants[prodId] : 0;
-
-      // Update Modal content
-      document.getElementById('modalProductImage').src = prod.image;
-      document.getElementById('modalProductImage').alt = prod.name;
-      
-      const brandBadge = document.getElementById('modalProductBrand');
-      if (prod.brandName) {
-        brandBadge.innerText = prod.brandName;
-        brandBadge.style.display = 'inline-block';
-      } else {
-        brandBadge.style.display = 'none';
+        grid.innerHTML = html;
       }
 
-      document.getElementById('modalProductName').innerText = prod.name;
-      document.getElementById('modalProductCategory').innerText = prod.categoryName;
-      document.getElementById('modalProductSubcategory').innerText = prod.subcategoryName;
-      document.getElementById('modalProductDesc').innerText = prod.description;
+      // Interactive variant selection
+      window.selectProductVariant = function (prodId, varIndex) {
+        const prod = allProducts.find(p => p.id === prodId);
+        if (!prod) return;
 
-      updateModalVariantView();
+        selectedVariants[prodId] = varIndex;
 
-      // Show modal
-      const modal = document.getElementById('productModal');
-      modal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden'; // Lock background scroll
-    };
-
-    window.closeProductModal = function() {
-      const modal = document.getElementById('productModal');
-      modal.classList.add('hidden');
-      document.body.style.overflow = ''; // Unlock background scroll
-    };
-
-    // Close modal on clicking backdrop
-    document.getElementById('productModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeProductModal();
-      }
-    });
-
-    window.selectModalVariant = function(idx) {
-      selectedModalVariantIdx = idx;
-      
-      // Sync it with the product card selection too!
-      if (currentModalProductId) {
-        selectedVariants[currentModalProductId] = idx;
-        
-        // Sync card view
-        const priceEl = document.getElementById(`price-${currentModalProductId}`);
+        const priceEl = document.getElementById(`price-${prodId}`);
         if (priceEl) {
-          priceEl.innerText = `₹${allProducts.find(p => p.id === currentModalProductId).variants[idx].price}`;
+          priceEl.innerText = `₹${prod.variants[varIndex].price}`;
         }
-        const pillsContainer = document.getElementById(`pills-${currentModalProductId}`);
+
+        const pillsContainer = document.getElementById(`pills-${prodId}`);
         if (pillsContainer) {
           const pills = pillsContainer.getElementsByClassName('var-pill');
           for (let i = 0; i < pills.length; i++) {
-            if (i === idx) {
+            if (i === varIndex) {
               pills[i].className = 'var-pill text-[10px] font-bold bg-primary-50 text-primary-800 border border-primary-200 px-2.5 py-1 rounded-md cursor-pointer transition';
             } else {
               pills[i].className = 'var-pill text-[10px] font-bold bg-gray-100 text-gray-600 border border-transparent px-2.5 py-1 rounded-md cursor-pointer transition';
             }
           }
         }
-      }
+      };
 
-      updateModalVariantView();
-    };
+      // Modal Control Logic
+      window.openProductModal = function (prodId) {
+        const prod = allProducts.find(p => p.id === prodId);
+        if (!prod) return;
 
-    function updateModalVariantView() {
-      const prod = allProducts.find(p => p.id === currentModalProductId);
-      if (!prod) return;
+        currentModalProductId = prodId;
+        selectedModalVariantIdx = selectedVariants[prodId] !== undefined ? selectedVariants[prodId] : 0;
 
-      const variant = prod.variants[selectedModalVariantIdx] || { weight: '1 Pack', price: 0, stock: 200 };
+        // Update Modal content
+        document.getElementById('modalProductImage').src = prod.image;
+        document.getElementById('modalProductImage').alt = prod.name;
 
-      // Update Price and Stock
-      document.getElementById('modalProductPrice').innerText = `₹${variant.price}`;
-      document.getElementById('modalProductStock').innerText = `In Stock (${variant.stock} left)`;
+        const brandBadge = document.getElementById('modalProductBrand');
+        if (prod.brandName) {
+          brandBadge.innerText = prod.brandName;
+          brandBadge.style.display = 'inline-block';
+        } else {
+          brandBadge.style.display = 'none';
+        }
 
-      // Render variants buttons in modal
-      const container = document.getElementById('modalVariantsContainer');
-      let html = '';
-      prod.variants.forEach((v, i) => {
-        const isSelected = i === selectedModalVariantIdx;
-        html += `
+        document.getElementById('modalProductName').innerText = prod.name;
+        document.getElementById('modalProductCategory').innerText = prod.categoryName;
+        document.getElementById('modalProductSubcategory').innerText = prod.subcategoryName;
+        document.getElementById('modalProductDesc').innerText = prod.description;
+
+        updateModalVariantView();
+
+        // Show modal
+        const modal = document.getElementById('productModal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Lock background scroll
+      };
+
+      window.closeProductModal = function () {
+        const modal = document.getElementById('productModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = ''; // Unlock background scroll
+      };
+
+      // Close modal on clicking backdrop
+      document.getElementById('productModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+          closeProductModal();
+        }
+      });
+
+      window.selectModalVariant = function (idx) {
+        selectedModalVariantIdx = idx;
+
+        // Sync it with the product card selection too!
+        if (currentModalProductId) {
+          selectedVariants[currentModalProductId] = idx;
+
+          // Sync card view
+          const priceEl = document.getElementById(`price-${currentModalProductId}`);
+          if (priceEl) {
+            priceEl.innerText = `₹${allProducts.find(p => p.id === currentModalProductId).variants[idx].price}`;
+          }
+          const pillsContainer = document.getElementById(`pills-${currentModalProductId}`);
+          if (pillsContainer) {
+            const pills = pillsContainer.getElementsByClassName('var-pill');
+            for (let i = 0; i < pills.length; i++) {
+              if (i === idx) {
+                pills[i].className = 'var-pill text-[10px] font-bold bg-primary-50 text-primary-800 border border-primary-200 px-2.5 py-1 rounded-md cursor-pointer transition';
+              } else {
+                pills[i].className = 'var-pill text-[10px] font-bold bg-gray-100 text-gray-600 border border-transparent px-2.5 py-1 rounded-md cursor-pointer transition';
+              }
+            }
+          }
+        }
+
+        updateModalVariantView();
+      };
+
+      function updateModalVariantView() {
+        const prod = allProducts.find(p => p.id === currentModalProductId);
+        if (!prod) return;
+
+        const variant = prod.variants[selectedModalVariantIdx] || { weight: '1 Pack', price: 0, stock: 200 };
+
+        // Update Price and Stock
+        document.getElementById('modalProductPrice').innerText = `₹${variant.price}`;
+        document.getElementById('modalProductStock').innerText = `In Stock (${variant.stock} left)`;
+
+        // Render variants buttons in modal
+        const container = document.getElementById('modalVariantsContainer');
+        let html = '';
+        prod.variants.forEach((v, i) => {
+          const isSelected = i === selectedModalVariantIdx;
+          html += `
           <button onclick="selectModalVariant(${i})" 
             class="flex flex-col text-left p-3 rounded-xl border text-xs font-bold transition cursor-pointer ${isSelected ? 'border-primary-800 bg-primary-50 text-primary-900 ring-2 ring-primary-800/10' : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'}">
             <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Weight</span>
             <span class="mt-0.5">${v.weight} - ₹${v.price}</span>
           </button>
         `;
+        });
+        container.innerHTML = html;
+      }
+
+      // Search Input Listener
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase().trim();
+        renderProducts();
       });
-      container.innerHTML = html;
-    }
 
-    // Search Input Listener
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      searchQuery = e.target.value.toLowerCase().trim();
-      renderProducts();
-    });
-
-    window.addEventListener('DOMContentLoaded', loadData);dow.addEventListener('DOMContentLoaded', loadData);
-  </script>
+      window.addEventListener('DOMContentLoaded', loadData);
+    </script>
 
 </body>
+
 </html>

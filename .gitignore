@@ -28,3 +28,7 @@ Thumbs.db
 *.md
 **/*.md
 docs/
+
+# Serena IDE configurations
+.serena/
+
