@@ -438,7 +438,83 @@
         © 2026 Shree Siddhivinayak Trading. All rights reserved. • Serving Panvel since 2007.
       </div>
     </div>
-  </footer>
+  <!-- Product Detail Modal -->
+  <div id="productModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative flex flex-col md:flex-row p-6 md:p-8 gap-6 md:gap-8">
+      <!-- Close Button -->
+      <button onclick="closeProductModal()" class="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 text-gray-700 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm transition cursor-pointer z-10">
+        ✕
+      </button>
+      
+      <!-- Left Side: Product Image -->
+      <div class="w-full md:w-1/2 bg-gray-50 rounded-2xl p-6 flex items-center justify-center aspect-square overflow-hidden border border-gray-100">
+        <img id="modalProductImage" src="" alt="" class="max-h-[300px] md:max-h-[400px] object-contain transition duration-300" onerror="this.onerror=null; this.src=window.DEFAULT_IMAGE;" />
+      </div>
+      
+      <!-- Right Side: Details -->
+      <div class="w-full md:w-1/2 flex flex-col justify-between space-y-5">
+        <div class="space-y-4">
+          <!-- Brand Badge -->
+          <span id="modalProductBrand" class="inline-block text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg">
+            Siddhivinayak
+          </span>
+          
+          <!-- Title -->
+          <h2 id="modalProductName" class="text-xl md:text-2xl font-black text-gray-900 leading-snug">
+            Product Name
+          </h2>
+          
+          <!-- Category & Subcategory -->
+          <div class="text-xs text-gray-500">
+            <span>Category: </span><span id="modalProductCategory" class="font-bold text-gray-700">Groceries</span>
+            <span class="mx-1.5">•</span>
+            <span>Subcategory: </span><span id="modalProductSubcategory" class="font-bold text-gray-700">Rice</span>
+          </div>
+          
+          <!-- Price & Stock Badge -->
+          <div class="flex items-center gap-3 pt-2">
+            <span id="modalProductPrice" class="text-2xl md:text-3xl font-black text-gray-900">₹78.00</span>
+            <span id="modalProductStock" class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg shadow-xs">
+              In Stock (200 left)
+            </span>
+          </div>
+          
+          <!-- Description -->
+          <div class="space-y-1.5">
+            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Info</h4>
+            <p id="modalProductDesc" class="text-xs leading-relaxed text-gray-600">
+              Premium choice wada Surti Kolam rice.
+            </p>
+          </div>
+          
+          <!-- Variants / Options -->
+          <div class="space-y-2">
+            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Option</h4>
+            <div id="modalVariantsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Dynamic variant buttons -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Action Buttons & Badging -->
+        <div class="space-y-4 pt-4 border-t border-gray-100">
+          <!-- Add to Cart CTA (Disabled/Inactive style for Coming Soon) -->
+          <button class="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-white font-extrabold text-xs uppercase tracking-wider py-3.5 shadow-md opacity-50 cursor-not-allowed">
+            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            Add to Cart Basket
+          </button>
+          
+          <!-- Trust/Security Banner -->
+          <div class="flex items-start gap-2 bg-emerald-50/50 border border-emerald-100 rounded-xl p-3">
+            <svg class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <p class="text-[10px] leading-relaxed text-gray-500">
+              Secure counter pickup or free neighborhood doorstep delivery. Inspected and verified fresh by Siddhivinayak partners Yatish and Manas.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- DYNAMIC DATA SCRIPT -->
   <script>
@@ -531,6 +607,8 @@
     let currentCategory = 'all';
     let searchQuery = '';
     let selectedVariants = {};
+    let currentModalProductId = null;
+    let selectedModalVariantIdx = 0;
 
     // Load data from live API if running, else use static fallback
     async function loadData() {
@@ -552,22 +630,32 @@
             name: p.name,
             categorySlug: p.category ? p.category.slug : 'general',
             categoryName: p.category ? p.category.name : 'Staples',
+            subcategoryName: p.subcategory ? p.subcategory.name : 'General',
+            brandName: p.brand ? p.brand.name : 'Siddhivinayak',
+            description: p.description || 'Premium quality daily kitchen staples sourced with care for freshness, purity, and honest pricing.',
             image: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${API_BASE}${p.imageUrl}`) : window.DEFAULT_IMAGE,
             variants: p.variants && p.variants.length > 0 
-              ? p.variants.map(v => ({ weight: v.attributeValue || '1 Pack', price: v.price || 0 }))
-              : [{ weight: '1 Pack', price: p.basePrice || 0 }]
+              ? p.variants.map(v => ({ weight: v.attributeValue || '1 Pack', price: v.price || 0, stock: v.stock !== undefined ? v.stock : 200 }))
+              : [{ weight: '1 Pack', price: p.basePrice || 0, stock: 200 }]
           }));
         } else {
           allProducts = FALLBACK_PRODUCTS.map(p => ({
-            ...p,
-            variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price }))
+            id: p.id,
+            name: p.name,
+            categorySlug: p.categorySlug,
+            categoryName: p.categoryName,
+            subcategoryName: 'Staples',
+            brandName: 'Siddhivinayak',
+            description: 'Premium quality daily kitchen staples sourced with care for freshness, purity, and honest pricing.',
+            image: p.image,
+            variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price, stock: 200 }))
           }));
         }
       } catch (err) {
         allCategories = FALLBACK_CATEGORIES;
         allProducts = FALLBACK_PRODUCTS.map(p => ({
           ...p,
-          variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price }))
+          variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price, stock: 200 }))
         }));
       }
 
@@ -640,7 +728,7 @@
         const currentVariant = prod.variants && prod.variants.length > selectedIdx ? prod.variants[selectedIdx] : { weight: '1 Pack', price: 0 };
         
         html += `
-          <div class="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+          <div onclick="openProductModal('${prod.id}')" class="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group cursor-pointer">
             
             <!-- Image & Category Badge -->
             <div class="relative mb-4 bg-gray-50 rounded-2xl p-4 overflow-hidden aspect-square flex items-center justify-center">
@@ -661,7 +749,7 @@
               <!-- Weight Variants -->
               <div id="pills-${prod.id}" class="flex flex-wrap gap-1.5">
                 ${prod.variants.map((v, i) => `
-                  <button onclick="selectProductVariant('${prod.id}', ${i})" 
+                  <button onclick="event.stopPropagation(); selectProductVariant('${prod.id}', ${i})" 
                     class="var-pill text-[10px] font-bold ${i === selectedIdx ? 'bg-primary-50 text-primary-800 border border-primary-200' : 'bg-gray-100 text-gray-600 border border-transparent'} px-2.5 py-1 rounded-md cursor-pointer transition">
                     ${v.weight}
                   </button>
@@ -717,13 +805,113 @@
       }
     };
 
+    // Modal Control Logic
+    window.openProductModal = function(prodId) {
+      const prod = allProducts.find(p => p.id === prodId);
+      if (!prod) return;
+
+      currentModalProductId = prodId;
+      selectedModalVariantIdx = selectedVariants[prodId] !== undefined ? selectedVariants[prodId] : 0;
+
+      // Update Modal content
+      document.getElementById('modalProductImage').src = prod.image;
+      document.getElementById('modalProductImage').alt = prod.name;
+      
+      const brandBadge = document.getElementById('modalProductBrand');
+      if (prod.brandName) {
+        brandBadge.innerText = prod.brandName;
+        brandBadge.style.display = 'inline-block';
+      } else {
+        brandBadge.style.display = 'none';
+      }
+
+      document.getElementById('modalProductName').innerText = prod.name;
+      document.getElementById('modalProductCategory').innerText = prod.categoryName;
+      document.getElementById('modalProductSubcategory').innerText = prod.subcategoryName;
+      document.getElementById('modalProductDesc').innerText = prod.description;
+
+      updateModalVariantView();
+
+      // Show modal
+      const modal = document.getElementById('productModal');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden'; // Lock background scroll
+    };
+
+    window.closeProductModal = function() {
+      const modal = document.getElementById('productModal');
+      modal.classList.add('hidden');
+      document.body.style.overflow = ''; // Unlock background scroll
+    };
+
+    // Close modal on clicking backdrop
+    document.getElementById('productModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeProductModal();
+      }
+    });
+
+    window.selectModalVariant = function(idx) {
+      selectedModalVariantIdx = idx;
+      
+      // Sync it with the product card selection too!
+      if (currentModalProductId) {
+        selectedVariants[currentModalProductId] = idx;
+        
+        // Sync card view
+        const priceEl = document.getElementById(`price-${currentModalProductId}`);
+        if (priceEl) {
+          priceEl.innerText = `₹${allProducts.find(p => p.id === currentModalProductId).variants[idx].price}`;
+        }
+        const pillsContainer = document.getElementById(`pills-${currentModalProductId}`);
+        if (pillsContainer) {
+          const pills = pillsContainer.getElementsByClassName('var-pill');
+          for (let i = 0; i < pills.length; i++) {
+            if (i === idx) {
+              pills[i].className = 'var-pill text-[10px] font-bold bg-primary-50 text-primary-800 border border-primary-200 px-2.5 py-1 rounded-md cursor-pointer transition';
+            } else {
+              pills[i].className = 'var-pill text-[10px] font-bold bg-gray-100 text-gray-600 border border-transparent px-2.5 py-1 rounded-md cursor-pointer transition';
+            }
+          }
+        }
+      }
+
+      updateModalVariantView();
+    };
+
+    function updateModalVariantView() {
+      const prod = allProducts.find(p => p.id === currentModalProductId);
+      if (!prod) return;
+
+      const variant = prod.variants[selectedModalVariantIdx] || { weight: '1 Pack', price: 0, stock: 200 };
+
+      // Update Price and Stock
+      document.getElementById('modalProductPrice').innerText = `₹${variant.price}`;
+      document.getElementById('modalProductStock').innerText = `In Stock (${variant.stock} left)`;
+
+      // Render variants buttons in modal
+      const container = document.getElementById('modalVariantsContainer');
+      let html = '';
+      prod.variants.forEach((v, i) => {
+        const isSelected = i === selectedModalVariantIdx;
+        html += `
+          <button onclick="selectModalVariant(${i})" 
+            class="flex flex-col text-left p-3 rounded-xl border text-xs font-bold transition cursor-pointer ${isSelected ? 'border-primary-800 bg-primary-50 text-primary-900 ring-2 ring-primary-800/10' : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'}">
+            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Weight</span>
+            <span class="mt-0.5">${v.weight} - ₹${v.price}</span>
+          </button>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
     // Search Input Listener
     document.getElementById('searchInput').addEventListener('input', (e) => {
       searchQuery = e.target.value.toLowerCase().trim();
       renderProducts();
     });
 
-    window.addEventListener('DOMContentLoaded', loadData);
+    window.addEventListener('DOMContentLoaded', loadData);dow.addEventListener('DOMContentLoaded', loadData);
   </script>
 
 </body>
