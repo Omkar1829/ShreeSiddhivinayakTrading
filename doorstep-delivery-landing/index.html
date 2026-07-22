@@ -124,6 +124,7 @@
         </div>
       </div>
 
+      <!-- CONTACT BUTTONS & QUICK DETAILS -->
       <div class="flex items-center gap-3">
         <a href="https://wa.me/919833607049?text=Hello%20Shree%20Siddhivinayak%20Trading,%20I'd%20like%20to%20know%20about%20your%20doorstep%20delivery%20launch." 
            target="_blank" 
@@ -519,17 +520,24 @@
       }
     ];
 
+    window.DEFAULT_IMAGE = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%"><rect width="100%" height="100%" fill="%23f3f4f6"/><circle cx="200" cy="180" r="60" fill="%23e5e7eb"/><path d="M150,290 C150,250 170,230 200,230 C230,230 250,250 250,290" fill="%23e5e7eb"/><text x="50%" y="330" font-family="sans-serif" font-size="16" font-weight="600" fill="%239ca3af" text-anchor="middle">No Image</text></svg>`;
+
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5050'
+      : 'https://api.shreesiddhivinayaktrading.in';
+
     let allCategories = [];
     let allProducts = [];
     let currentCategory = 'all';
     let searchQuery = '';
+    let selectedVariants = {};
 
     // Load data from live API if running, else use static fallback
     async function loadData() {
       try {
         const [catRes, prodRes] = await Promise.all([
-          fetch('http://localhost:5000/api/categories').then(r => r.json()).catch(() => null),
-          fetch('http://localhost:5000/api/products').then(r => r.json()).catch(() => null)
+          fetch(`${API_BASE}/api/categories`).then(r => r.json()).catch(() => null),
+          fetch(`${API_BASE}/api/products`).then(r => r.json()).catch(() => null)
         ]);
 
         if (catRes && catRes.success && catRes.categories && catRes.categories.length > 0) {
@@ -544,18 +552,29 @@
             name: p.name,
             categorySlug: p.category ? p.category.slug : 'general',
             categoryName: p.category ? p.category.name : 'Staples',
-            image: p.imageUrl || './images/wheat.png',
+            image: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${API_BASE}${p.imageUrl}`) : window.DEFAULT_IMAGE,
             variants: p.variants && p.variants.length > 0 
-              ? p.variants.map(v => ({ weight: v.weight || v.unit || '1 Pack', price: v.sellingPrice || v.mrp || 0 }))
-              : [{ weight: '1 Unit', price: p.basePrice || 0 }]
+              ? p.variants.map(v => ({ weight: v.attributeValue || '1 Pack', price: v.price || 0 }))
+              : [{ weight: '1 Pack', price: p.basePrice || 0 }]
           }));
         } else {
-          allProducts = FALLBACK_PRODUCTS;
+          allProducts = FALLBACK_PRODUCTS.map(p => ({
+            ...p,
+            variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price }))
+          }));
         }
       } catch (err) {
         allCategories = FALLBACK_CATEGORIES;
-        allProducts = FALLBACK_PRODUCTS;
+        allProducts = FALLBACK_PRODUCTS.map(p => ({
+          ...p,
+          variants: p.variants.map(v => ({ weight: v.weight || '1 Pack', price: v.price }))
+        }));
       }
+
+      // Initialize selected variants
+      allProducts.forEach(p => {
+        selectedVariants[p.id] = 0;
+      });
 
       renderCategories();
       renderProducts();
@@ -617,7 +636,8 @@
 
       let html = '';
       filtered.forEach(prod => {
-        const firstVariant = prod.variants && prod.variants.length > 0 ? prod.variants[0] : { weight: '1 Pack', price: 0 };
+        const selectedIdx = selectedVariants[prod.id] !== undefined ? selectedVariants[prod.id] : 0;
+        const currentVariant = prod.variants && prod.variants.length > selectedIdx ? prod.variants[selectedIdx] : { weight: '1 Pack', price: 0 };
         
         html += `
           <div class="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
@@ -625,7 +645,7 @@
             <!-- Image & Category Badge -->
             <div class="relative mb-4 bg-gray-50 rounded-2xl p-4 overflow-hidden aspect-square flex items-center justify-center">
               <img src="${prod.image}" alt="${prod.name}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300" 
-                   onerror="this.onerror=null; this.src='./images/wheat.png';" />
+                   onerror="this.onerror=null; this.src=window.DEFAULT_IMAGE;" />
               
               <span class="absolute top-3 left-3 bg-primary-800 text-emerald-100 text-[10px] font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-wider border border-primary-700 shadow-xs">
                 ${prod.categoryName}
@@ -639,19 +659,20 @@
               </h3>
 
               <!-- Weight Variants -->
-              <div class="flex flex-wrap gap-1.5">
+              <div id="pills-${prod.id}" class="flex flex-wrap gap-1.5">
                 ${prod.variants.map((v, i) => `
-                  <span class="text-[10px] font-bold ${i === 0 ? 'bg-primary-50 text-primary-800 border border-primary-200' : 'bg-gray-100 text-gray-600'} px-2 py-0.5 rounded-md">
+                  <button onclick="selectProductVariant('${prod.id}', ${i})" 
+                    class="var-pill text-[10px] font-bold ${i === selectedIdx ? 'bg-primary-50 text-primary-800 border border-primary-200' : 'bg-gray-100 text-gray-600 border border-transparent'} px-2.5 py-1 rounded-md cursor-pointer transition">
                     ${v.weight}
-                  </span>
+                  </button>
                 `).join('')}
               </div>
 
               <!-- Price & Status Badge -->
               <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
                 <div>
-                  <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Starting Price</span>
-                  <span class="text-base font-black text-gray-900">₹${firstVariant.price}</span>
+                  <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Price</span>
+                  <span id="price-${prod.id}" class="text-base font-black text-gray-900">₹${currentVariant.price}</span>
                 </div>
                 
                 <div class="text-right">
@@ -670,6 +691,31 @@
 
       grid.innerHTML = html;
     }
+
+    // Interactive variant selection
+    window.selectProductVariant = function(prodId, varIndex) {
+      const prod = allProducts.find(p => p.id === prodId);
+      if (!prod) return;
+      
+      selectedVariants[prodId] = varIndex;
+      
+      const priceEl = document.getElementById(`price-${prodId}`);
+      if (priceEl) {
+        priceEl.innerText = `₹${prod.variants[varIndex].price}`;
+      }
+      
+      const pillsContainer = document.getElementById(`pills-${prodId}`);
+      if (pillsContainer) {
+        const pills = pillsContainer.getElementsByClassName('var-pill');
+        for (let i = 0; i < pills.length; i++) {
+          if (i === varIndex) {
+            pills[i].className = 'var-pill text-[10px] font-bold bg-primary-50 text-primary-800 border border-primary-200 px-2.5 py-1 rounded-md cursor-pointer transition';
+          } else {
+            pills[i].className = 'var-pill text-[10px] font-bold bg-gray-100 text-gray-600 border border-transparent px-2.5 py-1 rounded-md cursor-pointer transition';
+          }
+        }
+      }
+    };
 
     // Search Input Listener
     document.getElementById('searchInput').addEventListener('input', (e) => {
