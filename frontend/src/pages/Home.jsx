@@ -265,7 +265,7 @@ export default function Home() {
         </p>
         <div className="flex items-center justify-center gap-4">
           <a
-            href={`tel:${phone}`}
+            href="tel:+919833607049"
             className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
           >
             <Phone size={15} /> Call: {phone}

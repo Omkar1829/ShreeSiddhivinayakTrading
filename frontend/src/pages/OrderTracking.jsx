@@ -298,7 +298,7 @@ export default function OrderTracking() {
 
           <div className="flex gap-2.5 w-full sm:w-auto justify-center">
             <a
-              href={`tel:${phone}`}
+              href="tel:+919833607049"
               className="flex-1 sm:flex-none flex items-center justify-center gap-1 text-center rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm"
             >
               <Phone size={14} /> Call Partner

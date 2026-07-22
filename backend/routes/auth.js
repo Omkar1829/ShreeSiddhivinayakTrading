@@ -223,7 +223,7 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
       where: { phone: formattedPhone }
     });
 
-    const adminNumbers = ['+918452921123'];
+    const adminNumbers = ['+919833607049'];
     const shouldBeAdmin = adminNumbers.includes(formattedPhone);
 
     if (!user) {
@@ -304,7 +304,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       });
     }
 
-    const adminNumbers = ['+918452921123'];
+    const adminNumbers = ['+919833607049'];
     const shouldBeAdmin = adminNumbers.includes(phone);
 
     user = await prisma.user.create({

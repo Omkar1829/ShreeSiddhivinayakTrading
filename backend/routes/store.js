@@ -61,7 +61,7 @@ router.get('/settings', async (req, res) => {
     });
 
     if (primaryAdmin && primaryAdmin.phone) {
-      configMap['phone_number'] = primaryAdmin.phone;
+      configMap['phone_number'] = "+919999999999";
       configMap['whatsapp_number'] = primaryAdmin.phone;
     }
 
@@ -70,8 +70,8 @@ router.get('/settings', async (req, res) => {
       store_name: "SHRI SIDDHIVINAYAK TRADING",
       logo_url: "",
       banner_url: "",
-      phone_number: "+918452921123",
-      whatsapp_number: "+918452921123",
+      phone_number: "+919999999999",
+      whatsapp_number: "+919833607049",
       address: "Shop No. 4, Opp. Krishna Tower, Uran Naka, Panvel - 410206",
       opening_time: "08:00",
       closing_time: "21:00",

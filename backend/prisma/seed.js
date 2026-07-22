@@ -30,7 +30,7 @@ async function main() {
 
   // 2. Create Admin Account
   console.log('Inserting admin account...');
-  const adminPhone = '+918452921123';
+  const adminPhone = '+919833607049';
   await prisma.user.upsert({
     where: { phone: adminPhone },
     update: { isAdmin: true, name: 'Admin Yatish', role: 'ADMIN', isPrimaryAdmin: true },

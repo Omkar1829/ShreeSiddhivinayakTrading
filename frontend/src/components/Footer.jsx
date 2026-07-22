@@ -63,7 +63,7 @@ export default function Footer() {
             </p>
             <div className="flex flex-wrap gap-3">
               <a
-                href={`tel:${phone}`}
+                href="tel:+919833607049"
                 className="flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-primary-900 hover:bg-gray-100 transition shadow-sm"
               >
                 <Phone size={14} /> Call Store
