@@ -1,9 +1,17 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { validateEnv } = require('./config/env');
+validateEnv();
+
 const express = require('express');
 const cors = require('cors');
 const prisma = require('./config/prisma');
-const path = require('path');
 const fs = require('fs');
+
+const helmet = require('helmet');
+const { corsOptions } = require('./config/corsOptions');
+const httpLogger = require('./middleware/logger');
+const { globalLimiter } = require('./middleware/rateLimiter');
 
 const authRoutes = require('./routes/auth');
 const categoryRoutes = require('./routes/categories');
@@ -25,14 +33,16 @@ const PORT = process.env.PORT || 5000;
 // Global Middlewares
 // ----------------------------------------------------
 
-app.use(cors({
-  origin: '*', // In production, restrict to frontend vercel domain
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
+app.use(globalLimiter);
+app.use(cors(corsOptions));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || '10mb';
+app.use(express.json({ limit: requestBodyLimit }));
+app.use(express.urlencoded({ limit: requestBodyLimit, extended: true }));
 
 // Setup local uploads directory and default grayscale SVG image
 const uploadDir = path.join(__dirname, 'uploads');
@@ -55,11 +65,8 @@ if (!fs.existsSync(defaultSvgPath)) {
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadDir));
 
-// Simple logger middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
+// Structured HTTP production request logger middleware
+app.use(httpLogger);
 
 // ----------------------------------------------------
 // REST API Routes
@@ -117,13 +124,16 @@ app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
 
   const statusCode = err.status || err.statusCode || 500;
+  const isProd = process.env.NODE_ENV === 'production';
   
   return res.status(statusCode).json({
     success: false,
     error: {
       code: err.code || 'SERVER_ERROR',
-      message: err.message || 'An unexpected internal server error occurred.',
-      details: err.details || []
+      message: (isProd && statusCode === 500)
+        ? 'An unexpected internal server error occurred.'
+        : (err.message || 'An unexpected internal server error occurred.'),
+      details: isProd ? [] : (err.details || [])
     }
   });
 });

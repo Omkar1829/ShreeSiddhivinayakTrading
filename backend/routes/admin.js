@@ -6,8 +6,10 @@ const validate = require('../middleware/validate');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { logAudit } = require('../utils/auditLogger');
 
+const { generateSecureOtp } = require('../utils/otp');
+
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_siddhivinayak_jwt_access_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // All routes in this router require authentication and admin access
 router.use(authenticateToken, requireAdmin);
@@ -494,8 +496,8 @@ router.patch('/orders/:id/assign-delivery', validate(deliveryAssignSchema), asyn
       { expiresIn: '1d' }
     );
 
-    // Generate random 6-digit OTP
-    const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit OTP
+    const deliveryOtp = generateSecureOtp();
 
     const updatedOrder = await prisma.order.update({
       where: { id },

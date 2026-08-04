@@ -4,8 +4,10 @@ const prisma = require('../config/prisma');
 const { logAudit } = require('../utils/auditLogger');
 const { authenticateToken } = require('../middleware/auth');
 
+const { generateSecureOtp } = require('../utils/otp');
+
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_siddhivinayak_jwt_access_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Helper Middleware: Ensure user is a registered delivery rider
 const requireDelivery = (req, res, next) => {
@@ -343,8 +345,8 @@ router.post('/scan-pickup', authenticateToken, requireDelivery, async (req, res)
       { expiresIn: '1d' }
     );
 
-    // Generate random 6-digit OTP
-    const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit OTP
+    const deliveryOtp = generateSecureOtp();
 
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },

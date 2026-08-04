@@ -29,46 +29,53 @@ model User {
   devices               AdminDevice[]
   notifications         Notification[]
 
+  @@index([role])
+  @@index([deletedAt])
   @@map("users")
 }
 
 model Address {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   recipientName  String
   recipientPhone String
   addressLine1   String
   addressLine2   String?
   landmark       String?
-  city           String   @default("Panvel")
-  state          String   @default("Maharashtra")
+  city           String    @default("Panvel")
+  state          String    @default("Maharashtra")
   postalCode     String
-  isDefault      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  createdBy      String?  @map("created_by")
-  updatedBy      String?  @map("updated_by")
-  deletedBy      String?  @map("deleted_by")
+  isDefault      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String?   @map("created_by")
+  updatedBy      String?   @map("updated_by")
+  deletedBy      String?   @map("deleted_by")
   deletedAt      DateTime? @map("deleted_at")
 
+  @@index([userId])
+  @@index([userId, isDefault])
+  @@index([deletedAt])
   @@map("addresses")
 }
 
 model Category {
-  id            String         @id @default(uuid())
-  name          String         @unique
-  slug          String         @unique
-  status        String         @default("ACTIVE")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  createdBy     String?        @map("created_by")
-  updatedBy     String?        @map("updated_by")
-  deletedBy     String?        @map("deleted_by")
-  deletedAt     DateTime?      @map("deleted_at")
+  id            String        @id @default(uuid())
+  name          String        @unique
+  slug          String        @unique
+  status        String        @default("ACTIVE")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdBy     String?       @map("created_by")
+  updatedBy     String?       @map("updated_by")
+  deletedBy     String?       @map("deleted_by")
+  deletedAt     DateTime?     @map("deleted_at")
   subcategories Subcategory[]
   products      Product[]
 
+  @@index([status])
+  @@index([deletedAt])
   @@map("categories")
 }
 
@@ -88,6 +95,9 @@ model Subcategory {
   products   Product[]
 
   @@unique([categoryId, name])
+  @@index([categoryId])
+  @@index([status])
+  @@index([deletedAt])
   @@map("subcategories")
 }
 
@@ -105,6 +115,8 @@ model Brand {
   deletedAt DateTime? @map("deleted_at")
   products  Product[]
 
+  @@index([status])
+  @@index([deletedAt])
   @@map("brands")
 }
 
@@ -132,6 +144,10 @@ model Product {
   variants      Variant[]
   orderItems    OrderItem[]
 
+  @@index([categoryId])
+  @@index([subcategoryId])
+  @@index([brandId])
+  @@index([status, deletedAt])
   @@map("products")
 }
 
@@ -153,6 +169,9 @@ model Variant {
   inventoryTransactions InventoryTransaction[]
   orderItems            OrderItem[]
 
+  @@index([productId])
+  @@index([productId, status])
+  @@index([deletedAt])
   @@map("variants")
 }
 
@@ -169,6 +188,10 @@ model InventoryTransaction {
   referenceOrder   Order?   @relation(fields: [referenceOrderId], references: [id], onDelete: SetNull)
   createdAt        DateTime @default(now())
 
+  @@index([variantId])
+  @@index([referenceOrderId])
+  @@index([adminUserId])
+  @@index([createdAt])
   @@map("inventory_transactions")
 }
 
@@ -182,7 +205,7 @@ model Order {
   totalAmount           Decimal                @db.Decimal(10, 2)
   deliveryCharge        Decimal                @default(0.00) @db.Decimal(10, 2)
   recipientName         String
-  recipientPhone         String
+  recipientPhone        String
   deliveryAddress       String
   deliveryRiderId       String?
   deliveryRider         User?                  @relation("RiderOrders", fields: [deliveryRiderId], references: [id], onDelete: SetNull)
@@ -206,28 +229,39 @@ model Order {
   inventoryTransactions InventoryTransaction[]
   notifications         Notification[]
 
+  @@index([userId])
+  @@index([deliveryRiderId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status])
+  @@index([deliveryRiderId, status])
+  @@index([deletedAt])
   @@map("orders")
 }
 
 model OrderItem {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId   String?
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
   variantId   String?
-  variant     Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  variant     Variant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
   productName String
   variantName String
-  price       Decimal  @db.Decimal(10, 2)
+  price       Decimal   @db.Decimal(10, 2)
   quantity    Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
-  createdBy   String?  @map("created_by")
-  updatedBy   String?  @map("updated_by")
-  deletedBy   String?  @map("deleted_by")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+  createdBy   String?   @map("created_by")
+  updatedBy   String?   @map("updated_by")
+  deletedBy   String?   @map("deleted_by")
   deletedAt   DateTime? @map("deleted_at")
 
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([deletedAt])
   @@map("order_items")
 }
 
@@ -251,6 +285,9 @@ model AuditLog {
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 
+  @@index([tableName, recordId])
+  @@index([userId])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 
@@ -265,6 +302,7 @@ model AdminDevice {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
+  @@index([adminId])
   @@map("admin_devices")
 }
 
@@ -280,5 +318,9 @@ model Notification {
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([orderId])
+  @@index([createdAt])
   @@map("notifications")
 }

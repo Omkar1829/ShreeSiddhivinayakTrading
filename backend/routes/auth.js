@@ -10,14 +10,21 @@ const { logAudit } = require('../utils/auditLogger');
 const { sendTwilioMessage } = require('../utils/twilio');
 const { sendTwoFactorOtp, verifyTwoFactorOtp } = require('../utils/twoFactor');
 const jwt = require('jsonwebtoken');
+const {
+  generateSecureOtp,
+  checkResendCooldown,
+  checkLockout,
+  createOtpSession,
+  getOtpSession,
+  clearOtpSession,
+  recordFailedAttempt,
+  clearLockout,
+  getOtpConfig
+} = require('../utils/otp');
 
 const router = express.Router();
 const upload = multer();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_siddhivinayak_jwt_access_secret';
-
-// Verification codes cache (in-memory for MVP development)
-const otpCache = new Map();
-const lockoutCache = new Map();
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // ----------------------------------------------------
 // Validation Schemas
@@ -44,47 +51,45 @@ const profileUpdateSchema = yup.object().shape({
 
 const registerSchema = yup.object().shape({
   registrationToken: yup.string().required('Registration token is required.'),
-  name: yup.string().required('Name is required.').min(2, 'Name must be at least 2 characters.')
+  name: yup.string().trim().required('Name is required.'),
+  email: yup.string().email('Invalid email address format.').nullable().optional(),
+  address: yup.string().nullable().optional(),
+  pincode: yup.string().nullable().optional()
 });
 
 // ----------------------------------------------------
-// Endpoints
+// Auth Routes
 // ----------------------------------------------------
 
 /**
  * Request OTP
  */
-router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
+router.post('/otp/request', authLimiter, validate(otpRequestSchema), async (req, res) => {
   const { phone } = req.body;
   const formattedPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
 
-  // 1. Check Lockout Status
-  const lockout = lockoutCache.get(formattedPhone);
-  if (lockout && lockout.lockedUntil > Date.now()) {
-    const remainingMin = Math.ceil((lockout.lockedUntil - Date.now()) / (60 * 1000));
+  // 1. Check Account Lockout
+  const lockout = checkLockout(formattedPhone);
+  if (lockout.isLocked) {
     return res.status(423).json({
       success: false,
       error: {
         code: 'ACCOUNT_LOCKED',
-        message: `Too many failed attempts. This number is locked for another ${remainingMin} minutes.`
+        message: `Too many failed attempts. This number is locked for another ${lockout.remainingMin} minutes.`
       }
     });
   }
 
-  // 2. Check Resend Cooldown (30 seconds)
-  const cachedOtp = otpCache.get(formattedPhone);
-  if (cachedOtp) {
-    const elapsed = Date.now() - (cachedOtp.createdAt || 0);
-    if (elapsed < 30 * 1000) {
-      const waitSec = Math.ceil((30 * 1000 - elapsed) / 1000);
-      return res.status(429).json({
-        success: false,
-        error: {
-          code: 'OTP_COOLDOWN',
-          message: `Please wait ${waitSec} seconds before requesting a new verification code.`
-        }
-      });
-    }
+  // 2. Check Resend Cooldown
+  const cooldown = checkResendCooldown(formattedPhone);
+  if (cooldown.isCooldown) {
+    return res.status(429).json({
+      success: false,
+      error: {
+        code: 'OTP_COOLDOWN',
+        message: `Please wait ${cooldown.waitSec} seconds before requesting a new verification code.`
+      }
+    });
   }
 
   // Check if user is registered
@@ -93,8 +98,8 @@ router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
   });
   const isNewUser = !user;
 
-  // Generate a random 6-digit OTP code (no mock bypass code by default)
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate cryptographically secure 6-digit OTP code
+  const otpCode = generateSecureOtp();
   let sessionId = null;
 
   const has2Factor = !!process.env.TWOFACTOR_API_KEY;
@@ -108,24 +113,21 @@ router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
     }
   } else if (hasTwilio) {
     try {
+      const { expirySeconds } = getOtpConfig();
+      const expiryMinutes = Math.round(expirySeconds / 60);
       await sendTwilioMessage(
         formattedPhone,
-        `Your Shri Siddhivinayak Trading verification code is: ${otpCode}. It will expire in 5 minutes.`
+        `Your Shri Siddhivinayak Trading verification code is: ${otpCode}. It will expire in ${expiryMinutes} minutes.`
       );
     } catch (err) {
       console.error('[Twilio OTP Error] Failed to send message via Twilio REST:', err.message);
     }
   } else {
-    // Mock fallback for development (without 123456 bypass)
+    // Mock fallback for development
     console.log(`[MOCK OTP] Twilio/2Factor not configured. Generated mock OTP code: ${otpCode} for ${formattedPhone}`);
   }
 
-  otpCache.set(formattedPhone, {
-    code: otpCode,
-    sessionId: sessionId,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes expiration
-  });
+  createOtpSession(formattedPhone, otpCode, sessionId);
 
   console.log(`[OTP] Generated verification session for ${formattedPhone}. 2Factor Session ID: ${sessionId}, Code: ${otpCode}`);
 
@@ -141,11 +143,23 @@ router.post('/otp/request', validate(otpRequestSchema), async (req, res) => {
 /**
  * Verify OTP
  */
-router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
+router.post('/otp/verify', authLimiter, validate(otpVerifySchema), async (req, res) => {
   const { phone, code } = req.body;
   const formattedPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
 
-  const cachedOtp = otpCache.get(formattedPhone);
+  // 1. Check if number is currently locked out
+  const lockout = checkLockout(formattedPhone);
+  if (lockout.isLocked) {
+    return res.status(423).json({
+      success: false,
+      error: {
+        code: 'ACCOUNT_LOCKED',
+        message: `Too many failed attempts. This number is locked for another ${lockout.remainingMin} minutes.`
+      }
+    });
+  }
+
+  const cachedOtp = getOtpSession(formattedPhone);
 
   if (!cachedOtp) {
     return res.status(400).json({
@@ -155,23 +169,10 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
   }
 
   if (cachedOtp.expiresAt < Date.now()) {
-    otpCache.delete(formattedPhone);
+    clearOtpSession(formattedPhone);
     return res.status(400).json({
       success: false,
       error: { code: 'OTP_EXPIRED', message: 'The verification code has expired. Please request a new one.' }
-    });
-  }
-
-  // 1. Check if number is currently locked out
-  const lockout = lockoutCache.get(formattedPhone);
-  if (lockout && lockout.lockedUntil > Date.now()) {
-    const remainingMin = Math.ceil((lockout.lockedUntil - Date.now()) / (60 * 1000));
-    return res.status(423).json({
-      success: false,
-      error: {
-        code: 'ACCOUNT_LOCKED',
-        message: `Too many failed attempts. This number is locked for another ${remainingMin} minutes.`
-      }
     });
   }
 
@@ -180,42 +181,35 @@ router.post('/otp/verify', validate(otpVerifySchema), async (req, res) => {
     // Verify via 2Factor verify API
     isMatched = await verifyTwoFactorOtp(cachedOtp.sessionId, code);
   } else {
-    // Check local generated code (no master 123456 bypass)
+    // Check local generated code
     isMatched = cachedOtp.code === code;
   }
 
   if (!isMatched) {
-    // Record failed attempt
-    let currentLockout = lockoutCache.get(formattedPhone) || { attempts: 0, lockedUntil: 0 };
-    currentLockout.attempts += 1;
-    lockoutCache.set(formattedPhone, currentLockout);
-
-    if (currentLockout.attempts >= 5) {
-      currentLockout.lockedUntil = Date.now() + 60 * 60 * 1000; // 1 hour lock
-      lockoutCache.set(formattedPhone, currentLockout);
-      otpCache.delete(formattedPhone); // clear OTP session
+    // Record failed attempt and handle potential lockout
+    const result = recordFailedAttempt(formattedPhone);
+    if (result.isNowLocked) {
       return res.status(423).json({
         success: false,
         error: {
           code: 'ACCOUNT_LOCKED',
-          message: 'Incorrect verification code entered 5 times. Your account is locked for 1 hour.'
+          message: `Incorrect verification code entered ${getOtpConfig().maxAttempts} times. Your account is locked for ${result.remainingMin} minutes.`
         }
       });
     } else {
-      const remaining = 5 - currentLockout.attempts;
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_OTP',
-          message: `Incorrect verification code. You have ${remaining} attempts remaining.`
+          message: `Incorrect verification code. You have ${result.remainingAttempts} attempts remaining.`
         }
       });
     }
   }
 
-  // OTP verified successfully, clear cache and lockout stats
-  otpCache.delete(formattedPhone);
-  lockoutCache.delete(formattedPhone);
+  // OTP verified successfully, clear active OTP session and lockout stats
+  clearOtpSession(formattedPhone);
+  clearLockout(formattedPhone);
 
   try {
     // Check if user exists, otherwise create

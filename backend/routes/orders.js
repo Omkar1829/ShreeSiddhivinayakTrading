@@ -178,12 +178,18 @@ router.post('/', validate(orderSchema), async (req, res) => {
       const stockDeductionUpdates = [];
       const stockTxLogs = [];
 
-      // Loop and verify variant stocks
+      // Batch fetch all cart variants in a single query to eliminate N+1 queries
+      const variantIds = items.map(item => item.variantId);
+      const fetchedVariants = await tx.variant.findMany({
+        where: { id: { in: variantIds } },
+        include: { product: true }
+      });
+
+      const variantMap = new Map(fetchedVariants.map(v => [v.id, v]));
+
+      // Verify variant stocks and compile order data
       for (const item of items) {
-        const variant = await tx.variant.findUnique({
-          where: { id: item.variantId },
-          include: { product: true }
-        });
+        const variant = variantMap.get(item.variantId);
 
         if (!variant || variant.status !== 'ACTIVE' || variant.product.status !== 'ACTIVE') {
           throw new Error(`PRODUCT_NOT_AVAILABLE|One or more products in your cart are no longer available.`);
@@ -218,25 +224,25 @@ router.post('/', validate(orderSchema), async (req, res) => {
           variantId: variant.id,
           quantity: -item.quantity,
           transactionType: 'ORDER_DEDUCTION',
-          reason: `Auto-deducted for order fulfillment`
+          reason: 'Order placed by customer'
         });
       }
 
-      // Execute stock deductions
+      // Deduct variant stocks concurrently
       const updatedVariants = await Promise.all(stockDeductionUpdates);
 
       // Generate order number
       const orderNumber = await generateOrderNumber();
 
-      // Create Order Header
+      // Create Order & OrderItems in database
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
           userId,
           status: 'PENDING',
-          paymentMethod,
-          totalAmount: totalAccumulated,
-          deliveryCharge: 0.00, // MVP Free Delivery
+          paymentMethod: paymentMethod || 'COD',
+          totalAmount: totalAccumulated + deliveryCharge,
+          deliveryCharge,
           recipientName: address.recipientName,
           recipientPhone: address.recipientPhone,
           deliveryAddress: formattedAddress,
@@ -255,7 +261,7 @@ router.post('/', validate(orderSchema), async (req, res) => {
       });
 
       return { newOrder: createdOrder, updatedVariants };
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     // Log audit trail
     await logAudit(null, {

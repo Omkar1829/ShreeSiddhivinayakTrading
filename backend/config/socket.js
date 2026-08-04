@@ -1,13 +1,14 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_siddhivinayak_jwt_access_secret';
+const { getCorsOrigin } = require('./corsOptions');
+const JWT_SECRET = process.env.JWT_SECRET;
 
 let io = null;
 
 const init = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: '*', // Restrict to frontends in production
+      origin: getCorsOrigin(),
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization']
     }

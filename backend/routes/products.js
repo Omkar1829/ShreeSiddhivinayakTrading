@@ -731,8 +731,14 @@ router.delete('/variants/:id', authenticateToken, requireAdmin, async (req, res)
   }
 });
 
-// CSV parser helper function
+// CSV parser helper function with UTF-8 BOM stripping
 function parseCSV(csvText) {
+  if (!csvText) return [];
+  // Strip UTF-8 Byte Order Mark (BOM) if present
+  if (csvText.charCodeAt(0) === 0xFEFF) {
+    csvText = csvText.slice(1);
+  }
+
   const lines = [];
   let currentLine = [];
   let currentVal = '';
@@ -757,7 +763,7 @@ function parseCSV(csvText) {
         i++;
       }
       currentLine.push(currentVal.trim());
-      if (currentLine.length > 1 || currentLine[0] !== '') {
+      if (currentLine.length > 1 || (currentLine.length === 1 && currentLine[0] !== '')) {
         lines.push(currentLine);
       }
       currentLine = [];
@@ -768,21 +774,44 @@ function parseCSV(csvText) {
   }
   if (currentVal || currentLine.length > 0) {
     currentLine.push(currentVal.trim());
-    lines.push(currentLine);
+    if (currentLine.length > 1 || (currentLine.length === 1 && currentLine[0] !== '')) {
+      lines.push(currentLine);
+    }
   }
   return lines;
 }
 
+const { validateCsvUpload } = require('../middleware/uploadValidator');
+
 /**
  * Admin: Bulk import products and variants via CSV
  */
-router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single('file'), async (req, res) => {
+router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single('file'), validateCsvUpload, async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: { message: 'No CSV file was uploaded.' } });
   }
 
   const axios = require('axios');
-  const csvText = req.file.buffer.toString('utf8');
+  let csvText = '';
+
+  // Dual Multer Storage Compatibility (Memory Buffer vs Disk File Path)
+  try {
+    if (req.file.buffer) {
+      csvText = req.file.buffer.toString('utf8');
+    } else if (req.file.path) {
+      csvText = fs.readFileSync(req.file.path, 'utf8');
+      try {
+        fs.unlinkSync(req.file.path); // Clean up temporary file from disk
+      } catch (unlinkErr) {
+        console.warn('Failed to delete temporary CSV upload file:', unlinkErr.message);
+      }
+    } else {
+      return res.status(400).json({ success: false, error: { message: 'Uploaded file content could not be read.' } });
+    }
+  } catch (fileErr) {
+    return res.status(500).json({ success: false, error: { message: `Error reading uploaded file: ${fileErr.message}` } });
+  }
+
   let parsedRows;
   try {
     parsedRows = parseCSV(csvText);
@@ -794,33 +823,58 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
     return res.status(400).json({ success: false, error: { message: 'CSV file must contain a header row and at least one data row.' } });
   }
 
-  const headerRow = parsedRows[0].map(h => h.toLowerCase().replace(/\s+/g, ''));
+  const headerRow = parsedRows[0].map(h => h.toLowerCase().replace(/[\s_]+/g, ''));
   const dataRows = parsedRows.slice(1);
 
-  const colIndex = (name) => headerRow.indexOf(name);
-  
-  const idxName = colIndex('productname');
-  const idxDesc = colIndex('description');
-  const idxCategory = colIndex('category');
-  const idxBrand = colIndex('brand');
-  const idxSku = colIndex('sku');
-  const idxPrice = colIndex('price');
-  const idxSalePrice = colIndex('saleprice');
-  const idxStock = colIndex('stock');
-  const idxWeight = colIndex('weight');
-  const idxVarName = colIndex('variantname');
-  const idxVarVal = colIndex('variantvalue');
-  const idxImageUrl = colIndex('imageurl');
+  // Flexible Header Column Alias Dictionary
+  const aliasMap = {
+    name: ['productname', 'name', 'product', 'title', 'itemname'],
+    description: ['description', 'desc', 'details'],
+    category: ['category', 'categoryname', 'cat'],
+    brand: ['brand', 'brandname'],
+    sku: ['sku', 'productsku', 'itemsku', 'code', 'barcode'],
+    price: ['price', 'mrp', 'unitprice', 'cost'],
+    salePrice: ['saleprice', 'offerprice', 'discountprice'],
+    stock: ['stock', 'quantity', 'qty', 'inventory'],
+    weight: ['weight', 'size', 'unit'],
+    variantName: ['variantname', 'attributename', 'type'],
+    variantValue: ['variantvalue', 'attributevalue', 'variant'],
+    imageUrl: ['imageurl', 'image', 'img', 'photo', 'picture']
+  };
+
+  const findColIndex = (aliases) => {
+    for (const alias of aliases) {
+      const idx = headerRow.indexOf(alias);
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+
+  const idxName = findColIndex(aliasMap.name);
+  const idxDesc = findColIndex(aliasMap.description);
+  const idxCategory = findColIndex(aliasMap.category);
+  const idxBrand = findColIndex(aliasMap.brand);
+  const idxSku = findColIndex(aliasMap.sku);
+  const idxPrice = findColIndex(aliasMap.price);
+  const idxSalePrice = findColIndex(aliasMap.salePrice);
+  const idxStock = findColIndex(aliasMap.stock);
+  const idxWeight = findColIndex(aliasMap.weight);
+  const idxVarName = findColIndex(aliasMap.variantName);
+  const idxVarVal = findColIndex(aliasMap.variantValue);
+  const idxImageUrl = findColIndex(aliasMap.imageUrl);
 
   if (idxName === -1) {
-    return res.status(400).json({ success: false, error: { message: "CSV is missing the required 'Product Name' header." } });
+    return res.status(400).json({
+      success: false,
+      error: { message: "CSV is missing a required 'Product Name' or 'Name' header column." }
+    });
   }
 
   const errors = [];
   const validRows = [];
   const seenSkus = new Set();
-  
-  // First pass: validation
+
+  // First Pass: Data Validation
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i];
     const rowNum = i + 2;
@@ -848,7 +902,7 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
 
       const dbProduct = await prisma.product.findUnique({ where: { sku } });
       if (dbProduct) {
-        errors.push({ row: rowNum, error: `SKU already exists in the database: '${sku}'` });
+        errors.push({ row: rowNum, error: `SKU already exists in database: '${sku}'` });
         continue;
       }
     }
@@ -859,9 +913,9 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
       continue;
     }
 
-    const stock = parseInt(stockStr);
+    const stock = stockStr !== '' ? parseInt(stockStr, 10) : 0;
     if (isNaN(stock) || stock < 0) {
-      errors.push({ row: rowNum, error: `Invalid Stock value: '${stockStr}'. Must an integer >= 0.` });
+      errors.push({ row: rowNum, error: `Invalid Stock value: '${stockStr}'. Must be an integer >= 0.` });
       continue;
     }
 
@@ -897,115 +951,133 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
   let importedProductsCount = 0;
   let importedVariantsCount = 0;
 
-  for (const row of validRows) {
-    try {
-      let uploadedImageUrl = null;
-      if (row.imageUrl) {
-        try {
-          if (row.imageUrl.startsWith('http://') || row.imageUrl.startsWith('https://')) {
-            const imageResponse = await axios.get(row.imageUrl, { responseType: 'arraybuffer' });
-            const imageBuffer = Buffer.from(imageResponse.data, 'binary');
-            const uploadResult = await uploadImage(imageBuffer, 'products');
-            uploadedImageUrl = uploadResult.secure_url;
+  // Transactional Bulk Import Execution
+  try {
+    await prisma.$transaction(async (tx) => {
+      const createdProductsBySlug = new Map();
+
+      for (const row of validRows) {
+        let uploadedImageUrl = null;
+        if (row.imageUrl) {
+          try {
+            if (row.imageUrl.startsWith('http://') || row.imageUrl.startsWith('https://')) {
+              const imageResponse = await axios.get(row.imageUrl, {
+                responseType: 'arraybuffer',
+                timeout: 5000 // 5 seconds timeout
+              });
+              const imageBuffer = Buffer.from(imageResponse.data, 'binary');
+              const uploadResult = await uploadImage(imageBuffer, 'products');
+              uploadedImageUrl = uploadResult.secure_url;
+            }
+          } catch (imgErr) {
+            console.warn(`Failed to fetch/upload image from URL '${row.imageUrl}':`, imgErr.message);
           }
-        } catch (imgErr) {
-          console.error(`Failed to fetch/upload image from URL: ${row.imageUrl}`, imgErr.message);
         }
-      }
 
-      let categoryId = null;
-      if (row.categoryName) {
-        const catSlug = slugify(row.categoryName);
-        const category = await prisma.category.upsert({
-          where: { slug: catSlug },
-          update: {},
-          create: { name: row.categoryName, slug: catSlug }
-        });
-        categoryId = category.id;
-      }
-
-      let brandId = null;
-      if (row.brandName) {
-        const brandSlug = slugify(row.brandName);
-        const brand = await prisma.brand.upsert({
-          where: { slug: brandSlug },
-          update: {},
-          create: { name: row.brandName, slug: brandSlug }
-        });
-        brandId = brand.id;
-      }
-
-      const prodSlug = slugify(row.name);
-      let product = await prisma.product.findUnique({
-        where: { slug: prodSlug }
-      });
-
-      if (!product) {
-        product = await prisma.product.create({
-          data: {
-            name: row.name,
-            slug: prodSlug,
-            description: row.description,
-            sku: row.sku || null,
-            imageUrl: uploadedImageUrl || row.imageUrl || null,
-            categoryId,
-            brandId,
-            status: 'ACTIVE'
-          }
-        });
-        importedProductsCount++;
-      }
-
-      const attributeName = row.variantName || 'Weight';
-      const attributeValue = row.variantValue || row.weight || '1 Kg';
-
-      const existingVariant = await prisma.variant.findFirst({
-        where: {
-          productId: product.id,
-          attributeName,
-          attributeValue
+        let categoryId = null;
+        if (row.categoryName) {
+          const catSlug = slugify(row.categoryName);
+          const category = await tx.category.upsert({
+            where: { slug: catSlug },
+            update: {},
+            create: { name: row.categoryName, slug: catSlug }
+          });
+          categoryId = category.id;
         }
-      });
 
-      if (!existingVariant) {
-        const createdVar = await prisma.variant.create({
-          data: {
+        let brandId = null;
+        if (row.brandName) {
+          const brandSlug = slugify(row.brandName);
+          const brand = await tx.brand.upsert({
+            where: { slug: brandSlug },
+            update: {},
+            create: { name: row.brandName, slug: brandSlug }
+          });
+          brandId = brand.id;
+        }
+
+        const prodSlug = slugify(row.name);
+        let product = createdProductsBySlug.get(prodSlug);
+
+        if (!product) {
+          product = await tx.product.findUnique({
+            where: { slug: prodSlug }
+          });
+        }
+
+        if (!product) {
+          product = await tx.product.create({
+            data: {
+              name: row.name,
+              slug: prodSlug,
+              description: row.description,
+              sku: row.sku || null,
+              imageUrl: uploadedImageUrl || row.imageUrl || null,
+              categoryId,
+              brandId,
+              status: 'ACTIVE'
+            }
+          });
+          importedProductsCount++;
+          createdProductsBySlug.set(prodSlug, product);
+        }
+
+        const attributeName = row.variantName || 'Weight';
+        const attributeValue = row.variantValue || row.weight || '1 Kg';
+
+        const existingVariant = await tx.variant.findFirst({
+          where: {
             productId: product.id,
             attributeName,
-            attributeValue,
-            price: row.price,
-            stock: row.stock,
-            status: 'ACTIVE'
+            attributeValue
           }
         });
 
-        await prisma.inventoryTransaction.create({
-          data: {
-            variantId: createdVar.id,
-            quantity: row.stock,
-            transactionType: 'STOCK_ADDITION',
-            reason: 'Imported via CSV file bulk upload'
-          }
-        });
+        if (!existingVariant) {
+          const createdVar = await tx.variant.create({
+            data: {
+              productId: product.id,
+              attributeName,
+              attributeValue,
+              price: row.price,
+              stock: row.stock,
+              status: 'ACTIVE'
+            }
+          });
 
-        importedVariantsCount++;
+          await tx.inventoryTransaction.create({
+            data: {
+              variantId: createdVar.id,
+              quantity: row.stock,
+              transactionType: 'STOCK_ADDITION',
+              reason: 'Imported via CSV bulk upload'
+            }
+          });
+
+          importedVariantsCount++;
+        }
       }
-    } catch (rowErr) {
-      console.error(`Error processing CSV row ${row.rowNum}:`, rowErr);
-      errors.push({ row: row.rowNum, error: `Database error: ${rowErr.message}` });
-    }
-  }
+    }, { maxWait: 10000, timeout: 30000 });
 
-  return res.json({
-    success: errors.length === 0,
-    summary: {
-      totalRows: dataRows.length,
-      importedProducts: importedProductsCount,
-      importedVariants: importedVariantsCount,
-      failedRowsCount: errors.length
-    },
-    errors
-  });
+    return res.json({
+      success: true,
+      summary: {
+        totalRows: dataRows.length,
+        importedProducts: importedProductsCount,
+        importedVariants: importedVariantsCount,
+        failedRowsCount: 0
+      },
+      errors: []
+    });
+  } catch (txError) {
+    console.error('CSV Transactional Import Error:', txError);
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: `Database transaction failed during CSV import: ${txError.message}`
+      }
+    });
+  }
 });
 
 module.exports = router;
