@@ -33,12 +33,12 @@ const PORT = process.env.PORT || 5000;
 // Global Middlewares
 // ----------------------------------------------------
 
+app.use(cors(corsOptions));
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 app.use(globalLimiter);
-app.use(cors(corsOptions));
 
 const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || '10mb';
 app.use(express.json({ limit: requestBodyLimit }));

@@ -208,6 +208,19 @@ router.patch('/orders/:id/pickup', authenticateToken, requireDelivery, async (re
       userId: req.user.id
     });
 
+    // Dispatch Out For Delivery SMS to Customer
+    try {
+      const { sendTransactionalSms } = require('../utils/twoFactor');
+      const riderName = req.user.name || 'Delivery Executive';
+      const dispatchSmsText = `Your order ${updatedOrder.orderNumber} is OUT FOR DELIVERY with rider ${riderName}. Delivery OTP: ${updatedOrder.deliveryOtp || 'N/A'}. Shree Siddhivinayak Trading.`;
+      sendTransactionalSms(
+        updatedOrder.recipientPhone,
+        dispatchSmsText
+      ).catch(err => console.error('[2Factor TSMS Error] Out for delivery SMS failed:', err.message));
+    } catch (err) {
+      console.error('[2Factor TSMS Error] Out for delivery trigger failed:', err.message);
+    }
+
     return res.json({
       success: true,
       message: 'Order marked as picked up. Out for delivery!',
@@ -288,11 +301,16 @@ router.post('/orders/:id/verify-otp', authenticateToken, requireDelivery, async 
       userId: req.user.id
     });
 
+    // Dispatch Order Delivered SMS to Customer
     try {
-      const { broadcast } = require('../utils/eventHub');
-      broadcast('ORDER_UPDATED', { orderId: id, status: 'DELIVERED' });
+      const { sendTransactionalSms } = require('../utils/twoFactor');
+      const deliveredSmsText = `Your order ${updatedOrder.orderNumber} has been successfully DELIVERED. Thank you for shopping with Shree Siddhivinayak Trading!`;
+      sendTransactionalSms(
+        updatedOrder.recipientPhone,
+        deliveredSmsText
+      ).catch(err => console.error('[2Factor TSMS Error] Delivered SMS failed:', err.message));
     } catch (err) {
-      console.error('[EventHub Error] Failed to broadcast ORDER_UPDATED:', err.message);
+      console.error('[2Factor TSMS Error] Delivered SMS trigger failed:', err.message);
     }
 
     return res.json({

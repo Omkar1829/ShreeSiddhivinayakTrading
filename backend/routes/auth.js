@@ -3,12 +3,13 @@ const yup = require('yup');
 const prisma = require('../config/prisma');
 const validate = require('../middleware/validate');
 const { authenticateToken } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/tokens');
 const { uploadImage } = require('../config/cloudinary');
 const multer = require('multer');
 const { logAudit } = require('../utils/auditLogger');
 const { sendTwilioMessage } = require('../utils/twilio');
-const { sendTwoFactorOtp, verifyTwoFactorOtp } = require('../utils/twoFactor');
+const { sendTwoFactorOtp, verifyTwoFactorOtp, sendOtpSmsViaTsms } = require('../utils/twoFactor');
 const jwt = require('jsonwebtoken');
 const {
   generateSecureOtp,
@@ -107,9 +108,10 @@ router.post('/otp/request', authLimiter, validate(otpRequestSchema), async (req,
 
   if (has2Factor) {
     try {
-      sessionId = await sendTwoFactorOtp(formattedPhone);
+      // Send OTP strictly using 2Factor R1 Transactional SMS API (TRANS_SMS)
+      await sendOtpSmsViaTsms(formattedPhone, otpCode);
     } catch (err) {
-      console.error('[2Factor OTP Error] Failed to send message via 2Factor REST:', err.message);
+      console.error('[2Factor OTP Error] Failed to send OTP via Transactional SMS:', err.message);
     }
   } else if (hasTwilio) {
     try {

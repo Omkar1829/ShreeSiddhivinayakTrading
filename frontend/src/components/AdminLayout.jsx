@@ -256,7 +256,7 @@ export default function AdminLayout({ children }) {
     { label: 'Catalog Config', icon: FolderTree, path: '/admin/catalog' },
     { label: 'Inventory', icon: Layers, path: '/admin/inventory' },
     { label: 'Customers', icon: Users, path: '/admin/customers' },
-    { label: 'Audit Logs', icon: ShieldCheck, path: '/admin/audit-logs' },
+    ...(storeSettings?.audit_logs_enabled === 'true' ? [{ label: 'Audit Logs', icon: ShieldCheck, path: '/admin/audit-logs' }] : []),
     { label: 'Settings', icon: Settings, path: '/admin/settings' }
   ];
 
@@ -266,10 +266,8 @@ export default function AdminLayout({ children }) {
         
         {/* Header Title */}
         <div className="flex items-center justify-between pb-3 border-b border-[#1c241f]">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-primary-800 flex items-center justify-center text-white font-black text-sm shadow-md border border-primary-750">
-              SV
-            </div>
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="Siddhivinayak Logo" className="h-9 w-9 rounded-xl object-cover shadow-md border border-primary-750 shrink-0" />
             <div>
               <span className="block font-black text-xs uppercase tracking-wider text-white">Siddhivinayak</span>
               <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest">Admin Panel</span>

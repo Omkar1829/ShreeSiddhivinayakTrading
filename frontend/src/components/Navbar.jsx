@@ -33,13 +33,16 @@ export default function Navbar() {
 
             {/* Logo */}
             <div className="flex items-center gap-6">
-              <Link to="/" className="flex flex-col">
-                <span className="font-display text-lg sm:text-xl font-extrabold tracking-tight text-primary-800 leading-none">
-                  SHREE SIDDHIVINAYAK
-                </span>
-                <span className="font-sans text-[10px] sm:text-xs font-semibold tracking-widest text-accent-600 uppercase mt-0.5 mx-auto">
-                  Trading • Since 2007
-                </span>
+              <Link to="/" className="flex items-center gap-2.5">
+                <img src="/logo.png" alt="Shree Siddhivinayak Trading Logo" className="h-10 w-10 rounded-xl object-cover shadow-sm shrink-0" />
+                <div className="flex flex-col">
+                  <span className="font-display text-base sm:text-lg font-extrabold tracking-tight text-primary-800 leading-none">
+                    SHREE SIDDHIVINAYAK
+                  </span>
+                  <span className="font-sans text-[10px] sm:text-xs font-semibold tracking-widest text-accent-600 uppercase mt-0.5">
+                    Trading • Since 2007
+                  </span>
+                </div>
               </Link>
 
               {/* Store timing tag */}

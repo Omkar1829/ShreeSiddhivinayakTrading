@@ -25,6 +25,7 @@ export default function AdminSettings() {
   const [openTime, setOpenTime] = useState('08:00');
   const [closeTime, setCloseTime] = useState('21:00');
   const [storeStatus, setStoreStatus] = useState('OPEN');
+  const [auditLogsEnabled, setAuditLogsEnabled] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
 
   // Staff registry states
@@ -66,6 +67,7 @@ export default function AdminSettings() {
       setOpenTime(storeSettings.opening_time || '08:00');
       setCloseTime(storeSettings.closing_time || '21:00');
       setStoreStatus(storeSettings.store_status || 'OPEN');
+      setAuditLogsEnabled(storeSettings.audit_logs_enabled === 'true');
     }
 
     loadTeam();
@@ -85,7 +87,8 @@ export default function AdminSettings() {
         { key: 'address', value: address },
         { key: 'opening_time', value: openTime },
         { key: 'closing_time', value: closeTime },
-        { key: 'store_status', value: storeStatus }
+        { key: 'store_status', value: storeStatus },
+        { key: 'audit_logs_enabled', value: auditLogsEnabled ? 'true' : 'false' }
       ]
     };
 
@@ -266,6 +269,33 @@ export default function AdminSettings() {
               rows={3}
               required
             />
+          </div>
+
+          {/* Audit Logging Toggle Switch */}
+          <div className="rounded-2xl border border-gray-150 p-4.5 bg-gray-50 flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={16} className="text-primary-850" />
+                <span className="text-xs font-bold text-gray-900">System Audit Logging</span>
+              </div>
+              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                Record database snapshots of edits, orders, and admin activity. Controls visibility of the Audit Logs menu.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAuditLogsEnabled(!auditLogsEnabled)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none ${
+                auditLogsEnabled ? 'bg-primary-800' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out mt-[4px] ${
+                  auditLogsEnabled ? 'translate-x-[22px]' : 'translate-x-[4px]'
+                }`}
+              />
+            </button>
           </div>
 
           <div className="border-t border-gray-100 pt-6 flex justify-between items-center">

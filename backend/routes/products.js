@@ -796,9 +796,9 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
 
   // Dual Multer Storage Compatibility (Memory Buffer vs Disk File Path)
   try {
-    if (req.file.buffer) {
+    if (req.file.buffer && typeof req.file.buffer.toString === 'function') {
       csvText = req.file.buffer.toString('utf8');
-    } else if (req.file.path) {
+    } else if (req.file.path && fs.existsSync(req.file.path)) {
       csvText = fs.readFileSync(req.file.path, 'utf8');
       try {
         fs.unlinkSync(req.file.path); // Clean up temporary file from disk
@@ -951,29 +951,20 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
   let importedProductsCount = 0;
   let importedVariantsCount = 0;
 
-  // Transactional Bulk Import Execution
+  // Step 1: Pre-process image URLs outside the database transaction block
+  for (const row of validRows) {
+    row.uploadedImageUrl = null;
+    if (row.imageUrl && (row.imageUrl.startsWith('http://') || row.imageUrl.startsWith('https://'))) {
+      row.uploadedImageUrl = row.imageUrl;
+    }
+  }
+
+  // Step 2: Transactional Bulk Import Execution (Increased timeout to 120s)
   try {
     await prisma.$transaction(async (tx) => {
       const createdProductsBySlug = new Map();
 
       for (const row of validRows) {
-        let uploadedImageUrl = null;
-        if (row.imageUrl) {
-          try {
-            if (row.imageUrl.startsWith('http://') || row.imageUrl.startsWith('https://')) {
-              const imageResponse = await axios.get(row.imageUrl, {
-                responseType: 'arraybuffer',
-                timeout: 5000 // 5 seconds timeout
-              });
-              const imageBuffer = Buffer.from(imageResponse.data, 'binary');
-              const uploadResult = await uploadImage(imageBuffer, 'products');
-              uploadedImageUrl = uploadResult.secure_url;
-            }
-          } catch (imgErr) {
-            console.warn(`Failed to fetch/upload image from URL '${row.imageUrl}':`, imgErr.message);
-          }
-        }
-
         let categoryId = null;
         if (row.categoryName) {
           const catSlug = slugify(row.categoryName);
@@ -1012,7 +1003,7 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
               slug: prodSlug,
               description: row.description,
               sku: row.sku || null,
-              imageUrl: uploadedImageUrl || row.imageUrl || null,
+              imageUrl: row.uploadedImageUrl || row.imageUrl || null,
               categoryId,
               brandId,
               status: 'ACTIVE'
@@ -1057,7 +1048,7 @@ router.post('/admin/import-csv', authenticateToken, requireAdmin, upload.single(
           importedVariantsCount++;
         }
       }
-    }, { maxWait: 10000, timeout: 30000 });
+    }, { maxWait: 20000, timeout: 120000 });
 
     return res.json({
       success: true,

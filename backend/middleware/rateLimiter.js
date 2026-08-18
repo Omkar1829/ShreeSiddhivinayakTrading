@@ -1,11 +1,13 @@
 const rateLimit = require('express-rate-limit');
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 /**
- * Global Rate Limiter: 100 requests per 15 minutes per IP
+ * Global Rate Limiter
  */
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: isDev ? 5000 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -18,11 +20,11 @@ const globalLimiter = rateLimit({
 });
 
 /**
- * Authentication & OTP Rate Limiter: 10 requests per 15 minutes per IP
+ * Authentication & OTP Rate Limiter
  */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: isDev ? 1000 : 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -35,11 +37,11 @@ const authLimiter = rateLimit({
 });
 
 /**
- * Administrative Operations Rate Limiter: 30 requests per 15 minutes per IP
+ * Administrative Operations Rate Limiter
  */
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: isDev ? 5000 : 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

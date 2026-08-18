@@ -110,25 +110,24 @@ const notificationSlice = createSlice({
         state.error = action.payload;
       })
       
-      // Mark as Read
+      // Mark as Read (removes item from notification center list)
       .addCase(markRead.fulfilled, (state, action) => {
         const updated = action.payload;
-        const idx = state.notifications.findIndex(n => n.id === updated.id);
-        if (idx !== -1) {
-          if (!state.notifications[idx].isRead) {
+        const notif = state.notifications.find(n => n.id === updated.id);
+        if (notif) {
+          if (!notif.isRead) {
             state.unreadCount = Math.max(0, state.unreadCount - 1);
           }
-          state.notifications[idx] = updated;
+          state.total = Math.max(0, state.total - 1);
+          state.notifications = state.notifications.filter(n => n.id !== updated.id);
         }
       })
       
-      // Mark All Read
+      // Mark All Read (clears all notifications from notification center list)
       .addCase(markAllRead.fulfilled, (state) => {
-        state.notifications = state.notifications.map(n => ({
-          ...n,
-          isRead: true
-        }));
+        state.notifications = [];
         state.unreadCount = 0;
+        state.total = 0;
       })
       
       // Delete Notification

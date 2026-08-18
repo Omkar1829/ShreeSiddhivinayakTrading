@@ -279,6 +279,29 @@ router.post('/', validate(orderSchema), async (req, res) => {
       console.error('[EventHub Error] Failed to broadcast ORDER_PLACED:', err.message);
     }
 
+    // Dispatch 2Factor Transactional SMS Alerts
+    try {
+      const { sendTransactionalSms } = require('../utils/twoFactor');
+      
+      // 1. Customer Order Confirmation SMS
+      const customerSmsText = `Dear ${address.recipientName}, your order ${newOrder.orderNumber} worth Rs. ${newOrder.totalAmount} has been received by Shree Siddhivinayak Trading. Thank you!`;
+      sendTransactionalSms(
+        address.recipientPhone,
+        customerSmsText
+      ).catch(err => console.error('[2Factor TSMS Error] Customer confirmation failed:', err.message));
+
+      // 2. Admin New Order Alert SMS
+      const adminPhone = process.env.ADMIN_ALERT_PHONE || '9833607049';
+      const adminSmsText = `NEW ORDER ALERT: Order ${newOrder.orderNumber} worth Rs. ${newOrder.totalAmount} placed by ${address.recipientName} (${address.recipientPhone}). Please check admin portal.`;
+      sendTransactionalSms(
+        adminPhone,
+        adminSmsText
+      ).catch(err => console.error('[2Factor TSMS Error] Admin alert failed:', err.message));
+
+    } catch (err) {
+      console.error('[2Factor TSMS Error] Failed to trigger order SMS alerts:', err.message);
+    }
+
     // Trigger Admin Push & Socket Notifications for New Order & Low Stock
     try {
       const { sendNewOrderNotification, sendLowStockNotification } = require('../services/notification.service');

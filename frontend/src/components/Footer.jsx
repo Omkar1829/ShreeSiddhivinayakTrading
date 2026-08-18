@@ -15,9 +15,12 @@ export default function Footer() {
 
           {/* About Section */}
           <div className="space-y-4">
-            <h4 className="font-display text-lg font-bold text-white tracking-wide">
-              SHRI SIDDHIVINAYAK TRADING
-            </h4>
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="Shree Siddhivinayak Trading Logo" className="h-10 w-10 rounded-xl object-cover shadow-sm shrink-0" />
+              <h4 className="font-display text-base font-bold text-white tracking-wide leading-snug">
+                SHRI SIDDHIVINAYAK TRADING
+              </h4>
+            </div>
             <p className="text-xs text-primary-200 leading-relaxed max-w-sm">
               Providing premium quality groceries, transparent prices, and reliable doorstep delivery to Panvel families. Serving the neighborhood with trust and freshness since 2007.
             </p>

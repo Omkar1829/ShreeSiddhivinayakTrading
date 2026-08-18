@@ -16,14 +16,16 @@ const getCorsOrigin = () => {
 const corsOptions = {
   origin: (origin, callback) => {
     const allowed = getCorsOrigin();
-    if (allowed === '*' || !origin || allowed.includes(origin)) {
+    if (!origin) return callback(null, true);
+    
+    if (allowed === '*' || allowed.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
       callback(null, true);
     } else {
       callback(new Error(`CORS policy rejection: Origin '${origin}' is not allowed.`));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true
 };
 
