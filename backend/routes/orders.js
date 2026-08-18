@@ -178,12 +178,18 @@ router.post('/', validate(orderSchema), async (req, res) => {
       const stockDeductionUpdates = [];
       const stockTxLogs = [];
 
-      // Loop and verify variant stocks
+      // Batch fetch all cart variants in a single query to eliminate N+1 queries
+      const variantIds = items.map(item => item.variantId);
+      const fetchedVariants = await tx.variant.findMany({
+        where: { id: { in: variantIds } },
+        include: { product: true }
+      });
+
+      const variantMap = new Map(fetchedVariants.map(v => [v.id, v]));
+
+      // Verify variant stocks and compile order data
       for (const item of items) {
-        const variant = await tx.variant.findUnique({
-          where: { id: item.variantId },
-          include: { product: true }
-        });
+        const variant = variantMap.get(item.variantId);
 
         if (!variant || variant.status !== 'ACTIVE' || variant.product.status !== 'ACTIVE') {
           throw new Error(`PRODUCT_NOT_AVAILABLE|One or more products in your cart are no longer available.`);
@@ -218,25 +224,25 @@ router.post('/', validate(orderSchema), async (req, res) => {
           variantId: variant.id,
           quantity: -item.quantity,
           transactionType: 'ORDER_DEDUCTION',
-          reason: `Auto-deducted for order fulfillment`
+          reason: 'Order placed by customer'
         });
       }
 
-      // Execute stock deductions
+      // Deduct variant stocks concurrently
       const updatedVariants = await Promise.all(stockDeductionUpdates);
 
       // Generate order number
       const orderNumber = await generateOrderNumber();
 
-      // Create Order Header
+      // Create Order & OrderItems in database
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
           userId,
           status: 'PENDING',
-          paymentMethod,
-          totalAmount: totalAccumulated,
-          deliveryCharge: 0.00, // MVP Free Delivery
+          paymentMethod: paymentMethod || 'COD',
+          totalAmount: totalAccumulated + deliveryCharge,
+          deliveryCharge,
           recipientName: address.recipientName,
           recipientPhone: address.recipientPhone,
           deliveryAddress: formattedAddress,
@@ -255,7 +261,7 @@ router.post('/', validate(orderSchema), async (req, res) => {
       });
 
       return { newOrder: createdOrder, updatedVariants };
-    });
+    }, { maxWait: 10000, timeout: 30000 });
 
     // Log audit trail
     await logAudit(null, {
@@ -271,6 +277,29 @@ router.post('/', validate(orderSchema), async (req, res) => {
       broadcast('ORDER_PLACED', { orderId: newOrder.id, orderNumber: newOrder.orderNumber });
     } catch (err) {
       console.error('[EventHub Error] Failed to broadcast ORDER_PLACED:', err.message);
+    }
+
+    // Dispatch 2Factor Transactional SMS Alerts
+    try {
+      const { sendTransactionalSms } = require('../utils/twoFactor');
+      
+      // 1. Customer Order Confirmation SMS
+      const customerSmsText = `Dear ${address.recipientName}, your order ${newOrder.orderNumber} worth Rs. ${newOrder.totalAmount} has been received by Shree Siddhivinayak Trading. Thank you!`;
+      sendTransactionalSms(
+        address.recipientPhone,
+        customerSmsText
+      ).catch(err => console.error('[2Factor TSMS Error] Customer confirmation failed:', err.message));
+
+      // 2. Admin New Order Alert SMS
+      const adminPhone = process.env.ADMIN_ALERT_PHONE || '9833607049';
+      const adminSmsText = `NEW ORDER ALERT: Order ${newOrder.orderNumber} worth Rs. ${newOrder.totalAmount} placed by ${address.recipientName} (${address.recipientPhone}). Please check admin portal.`;
+      sendTransactionalSms(
+        adminPhone,
+        adminSmsText
+      ).catch(err => console.error('[2Factor TSMS Error] Admin alert failed:', err.message));
+
+    } catch (err) {
+      console.error('[2Factor TSMS Error] Failed to trigger order SMS alerts:', err.message);
     }
 
     // Trigger Admin Push & Socket Notifications for New Order & Low Stock

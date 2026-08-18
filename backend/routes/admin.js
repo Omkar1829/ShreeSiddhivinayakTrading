@@ -6,8 +6,10 @@ const validate = require('../middleware/validate');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { logAudit } = require('../utils/auditLogger');
 
+const { generateSecureOtp } = require('../utils/otp');
+
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_siddhivinayak_jwt_access_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // All routes in this router require authentication and admin access
 router.use(authenticateToken, requireAdmin);
@@ -104,7 +106,13 @@ router.get('/dashboard/metrics', async (req, res) => {
   try {
     // 1. All-time global counts
     const totalOrders = await prisma.order.count();
-    const totalCustomers = await prisma.user.count({ where: { isAdmin: false } });
+    const totalCustomers = await prisma.user.count({
+      where: {
+        isAdmin: false,
+        role: 'CUSTOMER',
+        deletedAt: null
+      }
+    });
     const totalProducts = await prisma.product.count({ where: { status: 'ACTIVE' } });
 
     const allTimeRevenueSum = await prisma.order.aggregate({
@@ -494,8 +502,8 @@ router.patch('/orders/:id/assign-delivery', validate(deliveryAssignSchema), asyn
       { expiresIn: '1d' }
     );
 
-    // Generate random 6-digit OTP
-    const deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit OTP
+    const deliveryOtp = generateSecureOtp();
 
     const updatedOrder = await prisma.order.update({
       where: { id },
@@ -756,25 +764,82 @@ router.get('/inventory/transactions', async (req, res) => {
 /**
  * Admin: Get system audit logs
  */
+/**
+ * Admin: Get system audit logs with pagination and period filters
+ */
 router.get('/audit-logs', async (req, res) => {
-  const { tableName, action } = req.query;
+  const { tableName, action, period, startDate, endDate, page = 1, limit = 15 } = req.query;
+
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, parseInt(limit, 10) || 15);
+  const skip = (pageNum - 1) * limitNum;
 
   const filter = {};
   if (tableName) filter.tableName = tableName;
   if (action) filter.action = action;
 
+  // Day & Week Date Filtering
+  if (period) {
+    const now = new Date();
+    if (period === 'today') {
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      filter.createdAt = { gte: startOfToday };
+    } else if (period === 'yesterday') {
+      const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      filter.createdAt = { gte: startOfYesterday, lt: endOfYesterday };
+    } else if (period === 'this_week') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      filter.createdAt = { gte: sevenDaysAgo };
+    } else if (period === 'last_week') {
+      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      filter.createdAt = { gte: fourteenDaysAgo, lt: sevenDaysAgo };
+    } else if (period === 'this_month') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      filter.createdAt = { gte: startOfMonth };
+    } else if (period === 'custom' && (startDate || endDate)) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.lte = end;
+      }
+    }
+  } else if (startDate || endDate) {
+    filter.createdAt = {};
+    if (startDate) filter.createdAt.gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt.lte = end;
+    }
+  }
+
   try {
-    const logs = await prisma.auditLog.findMany({
-      where: filter,
-      include: {
-        user: { select: { name: true, phone: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const [total, logs] = await Promise.all([
+      prisma.auditLog.count({ where: filter }),
+      prisma.auditLog.findMany({
+        where: filter,
+        include: {
+          user: { select: { name: true, phone: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum
+      })
+    ]);
 
     return res.json({
       success: true,
-      logs
+      logs,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum) || 1
+      }
     });
   } catch (error) {
     console.error('Fetch audit logs error:', error);
@@ -786,18 +851,26 @@ router.get('/audit-logs', async (req, res) => {
 });
 
 /**
- * Admin: Get all customer accounts with order metrics
+ * Admin: Get all customer accounts (strictly excludes admins and delivery riders)
  */
 router.get('/users', async (req, res) => {
   const { search, limit, offset } = req.query;
 
-  const filterClause = { isAdmin: false };
+  // STRICTLY EXCLUDE ADMINS AND DELIVERY RIDERS FROM CUSTOMERS DIRECTORY
+  const filterClause = {
+    isAdmin: false,
+    role: 'CUSTOMER'
+  };
 
   if (search) {
-    filterClause.OR = [
-      { id: { contains: search, mode: 'insensitive' } },
-      { name: { contains: search, mode: 'insensitive' } },
-      { phone: { contains: search, mode: 'insensitive' } }
+    filterClause.AND = [
+      {
+        OR: [
+          { id: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } }
+        ]
+      }
     ];
   }
 
@@ -833,7 +906,8 @@ router.get('/users', async (req, res) => {
         id: u.id,
         name: u.name || 'Unnamed Customer',
         phone: u.phone,
-        status: u.status || 'ACTIVE',
+        status: u.deletedAt ? 'INACTIVE' : 'ACTIVE',
+        isDeactivated: !!u.deletedAt,
         createdAt: u.createdAt,
         ordersCount: u.orders.length,
         totalSpend
@@ -855,6 +929,80 @@ router.get('/users', async (req, res) => {
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to retrieve customer accounts.' }
     });
+  }
+});
+
+/**
+ * Admin: Toggle Customer Deactivation/Activation status
+ */
+router.patch('/users/:id/toggle-status', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: { message: 'Customer account not found.' } });
+    }
+    if (targetUser.isAdmin || targetUser.role === 'ADMIN' || targetUser.role === 'DELIVERY') {
+      return res.status(400).json({ success: false, error: { message: 'Only customer accounts can be deactivated here.' } });
+    }
+
+    const newDeletedAt = targetUser.deletedAt ? null : new Date();
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { deletedAt: newDeletedAt }
+    });
+
+    await logAudit(null, {
+      tableName: 'users',
+      recordId: id,
+      action: 'UPDATE',
+      oldValues: { deletedAt: targetUser.deletedAt },
+      newValues: { deletedAt: updated.deletedAt },
+      userId: req.user?.id
+    });
+
+    return res.json({
+      success: true,
+      message: updated.deletedAt ? 'Customer deactivated successfully.' : 'Customer reactivated successfully.',
+      isDeactivated: !!updated.deletedAt
+    });
+  } catch (error) {
+    console.error('Toggle customer status error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update customer status.' } });
+  }
+});
+
+/**
+ * Admin: Permanently Delete Customer Account
+ */
+router.delete('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: { message: 'Customer account not found.' } });
+    }
+    if (targetUser.isAdmin || targetUser.role === 'ADMIN' || targetUser.role === 'DELIVERY') {
+      return res.status(400).json({ success: false, error: { message: 'Admins and Delivery Riders cannot be deleted from Customer directory.' } });
+    }
+
+    await prisma.user.delete({ where: { id } });
+
+    await logAudit(null, {
+      tableName: 'users',
+      recordId: id,
+      action: 'DELETE',
+      oldValues: { name: targetUser.name, phone: targetUser.phone },
+      userId: req.user?.id
+    });
+
+    return res.json({
+      success: true,
+      message: 'Customer account permanently deleted.'
+    });
+  } catch (error) {
+    console.error('Delete customer error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete customer account.' } });
   }
 });
 

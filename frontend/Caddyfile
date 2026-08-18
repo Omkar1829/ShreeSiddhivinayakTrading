@@ -1,0 +1,18 @@
+# 1. Main Website & Landing Page
+shreesiddhivinayaktrading.in, www.shreesiddhivinayaktrading.in {
+    root * /var/www/shree-siddhivinayak-trading
+    file_server
+    try_files {path} /doorstep-delivery-soon.html
+}
+
+# 2. Testing Frontend App
+app.shreesiddhivinayaktrading.in {
+    root * /var/www/shree-siddhivinayak-trading/frontend/dist
+    file_server
+    try_files {path} /index.html
+}
+
+# 3. Backend API
+api.shreesiddhivinayaktrading.in {
+    reverse_proxy localhost:5050
+}

@@ -16,6 +16,15 @@ const prisma = require('../config/prisma');
 const logAudit = async (tx, { tableName, recordId, action, oldValues = null, newValues = null, userId = null }) => {
   const client = tx || prisma;
   try {
+    // Check if system audit logging is enabled in store_settings (default is false)
+    const auditSetting = await client.storeSetting.findUnique({
+      where: { key: 'audit_logs_enabled' }
+    });
+
+    if (!auditSetting || auditSetting.value !== 'true') {
+      return; // Audit logs disabled
+    }
+
     await client.auditLog.create({
       data: {
         tableName,
