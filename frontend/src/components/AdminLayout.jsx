@@ -50,33 +50,27 @@ export default function AdminLayout({ children }) {
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
 
-  const showNativeNotification = (title, body, targetUrl = '/admin/orders') => {
-    // 1. Play Synthesized Double Chime (using Web Audio API for offline-friendly reliability)
+  const playNotificationSound = () => {
     try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 Note
-      gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      oscillator.start();
-      
-      // Play second higher pitch note shortly after
-      setTimeout(() => {
-        oscillator.frequency.setValueAtTime(880.00, audioCtx.currentTime); // A5 Note
-      }, 100);
-
-      setTimeout(() => {
-        oscillator.stop();
-        audioCtx.close();
-      }, 250);
+      const audio = new Audio('/notification.mp3');
+      audio.currentTime = 0;
+      audio.play().catch((err) => {
+        console.warn('[Audio Playback] Autoplay restricted until user interaction:', err);
+      });
     } catch (err) {
-      console.warn('[Audio Chime Warning] Audio playback blocked by browser user gesture policy:', err.message);
+      console.error('[Audio Playback Error]', err);
+    }
+  };
+
+  const showNativeNotification = (title, body, targetUrl = '/admin/orders') => {
+    // Play audio notification chime
+    playNotificationSound();
+
+    // 1. In-app notification toast alert
+    if (Notification.permission !== 'granted') {
+      toast.info(`${title}: ${body}`, {
+        onClick: () => navigate(targetUrl)
+      });
     }
 
     // 2. Trigger native OS System Notification Banner (Windows/Android Notification Center)
@@ -138,14 +132,12 @@ export default function AdminLayout({ children }) {
     const setupFcm = async () => {
       if (isAuthenticated && user?.isAdmin) {
         try {
-          if (Notification.permission === 'granted') {
-            const token = await requestNotificationPermission();
-            if (token) {
-              await registerDeviceToken(token);
-            }
+          const token = await requestNotificationPermission();
+          if (token) {
+            await registerDeviceToken(token);
           }
         } catch (err) {
-          console.error('[AdminLayout FCM Error] Failed to initialize FCM:', err);
+          console.error('[FCM Setup Error] Failed during automatic registration:', err);
         }
       }
     };
@@ -174,6 +166,7 @@ export default function AdminLayout({ children }) {
         console.log('[Socket.IO Client] Received new-notification:', notif);
         dispatch(receiveRealtimeNotification(notif));
         toast.success(`${notif.title}: ${notif.message}`);
+        playNotificationSound();
 
         // Trigger native OS banner and sound chime
         const target = notif.orderId ? '/admin/orders' : (notif.type === 'LOW_STOCK' ? '/admin/inventory' : '/admin');
@@ -183,16 +176,19 @@ export default function AdminLayout({ children }) {
       // Listen for order dispatches to reload table metrics
       socket.on('new-order', (data) => {
         console.log('[Socket.IO Client] new-order received:', data);
+        playNotificationSound();
         window.dispatchEvent(new CustomEvent('ORDER_PLACED', { detail: data }));
       });
 
       socket.on('order-cancelled', (data) => {
         console.log('[Socket.IO Client] order-cancelled received:', data);
+        playNotificationSound();
         window.dispatchEvent(new CustomEvent('ORDER_UPDATED', { detail: data }));
       });
 
       socket.on('low-stock', (data) => {
         console.log('[Socket.IO Client] low-stock alert received:', data);
+        playNotificationSound();
         toast.error(`LOW STOCK WARNING: ${data.message}`);
         showNativeNotification('Low Stock Alert', data.message, '/admin/inventory');
       });
@@ -205,6 +201,7 @@ export default function AdminLayout({ children }) {
     try {
       unsubscribeFcm = onForegroundMessage((payload) => {
         console.log('[FCM Foreground] Push received:', payload);
+        playNotificationSound();
         toast.info(`${payload.notification.title}: ${payload.notification.body}`);
         showNativeNotification(payload.notification.title, payload.notification.body, payload.data?.url || '/admin/orders');
       });

@@ -123,6 +123,21 @@ export default function AdminSettings() {
     }
   };
 
+  const handleTestAudio = () => {
+    try {
+      const audio = new Audio('/notification.mp3');
+      audio.currentTime = 0;
+      audio.play().then(() => {
+        toast.success('🔊 Playing notification sound!');
+      }).catch((err) => {
+        console.warn('Audio play error:', err);
+        toast.error('Browser blocked audio autoplay. Click on page first to enable sound.');
+      });
+    } catch (err) {
+      toast.error('Failed to play audio sound.');
+    }
+  };
+
   const handleAddMember = async (e) => {
     e.preventDefault();
     setMemberError('');
@@ -298,16 +313,27 @@ export default function AdminSettings() {
             </button>
           </div>
 
-          <div className="border-t border-gray-100 pt-6 flex justify-between items-center">
-            <button
-              type="button"
-              onClick={handleSendTestPush}
-              disabled={testLoading}
-              className="rounded-xl border border-primary-200 bg-primary-50 py-3 px-6 text-xs font-bold text-primary-800 hover:bg-primary-100 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-            >
-              {testLoading ? <Loader2 className="animate-spin" size={16} /> : <Bell size={16} />}
-              Send Test Push Alert
-            </button>
+          <div className="border-t border-gray-100 pt-6 flex flex-wrap justify-between items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleTestAudio}
+                className="rounded-xl border border-gray-200 bg-white py-3 px-4 text-xs font-bold text-gray-800 hover:bg-gray-50 transition flex items-center gap-1.5 shadow-xs"
+              >
+                <Bell size={16} className="text-primary-850" />
+                Test Audio Chime
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSendTestPush}
+                disabled={testLoading}
+                className="rounded-xl border border-primary-200 bg-primary-50 py-3 px-5 text-xs font-bold text-primary-800 hover:bg-primary-100 transition flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+              >
+                {testLoading ? <Loader2 className="animate-spin" size={16} /> : <Bell size={16} />}
+                Send Test Push Alert
+              </button>
+            </div>
             <button
               type="submit"
               disabled={submitting}
