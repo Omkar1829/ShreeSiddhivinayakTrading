@@ -10,6 +10,7 @@ const multer = require('multer');
 const { logAudit } = require('../utils/auditLogger');
 const { sendTwilioMessage } = require('../utils/twilio');
 const { sendTwoFactorOtp, verifyTwoFactorOtp, sendOtpSmsViaTsms } = require('../utils/twoFactor');
+const { sendMinimothOtp, verifyMinimothOtp } = require('../utils/minimoth');
 const jwt = require('jsonwebtoken');
 const {
   generateSecureOtp,
@@ -103,10 +104,20 @@ router.post('/otp/request', authLimiter, validate(otpRequestSchema), async (req,
   const otpCode = generateSecureOtp();
   let sessionId = null;
 
+  const hasMinimoth = !!process.env.MINIMOTH_API_KEY;
   const has2Factor = !!process.env.TWOFACTOR_API_KEY;
   const hasTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 
-  if (has2Factor) {
+  if (hasMinimoth) {
+    try {
+      const minimothRes = await sendMinimothOtp(formattedPhone);
+      if (minimothRes && minimothRes.otp_id) {
+        sessionId = minimothRes.otp_id;
+      }
+    } catch (err) {
+      console.error('[MiniMoth OTP Error] Failed to send OTP via MiniMoth:', err.message);
+    }
+  } else if (has2Factor) {
     try {
       // Send OTP strictly using 2Factor R1 Transactional SMS API (TRANS_SMS)
       await sendOtpSmsViaTsms(formattedPhone, otpCode);
@@ -126,17 +137,17 @@ router.post('/otp/request', authLimiter, validate(otpRequestSchema), async (req,
     }
   } else {
     // Mock fallback for development
-    console.log(`[MOCK OTP] Twilio/2Factor not configured. Generated mock OTP code: ${otpCode} for ${formattedPhone}`);
+    console.log(`[MOCK OTP] Twilio/2Factor/MiniMoth not configured. Generated mock OTP code: ${otpCode} for ${formattedPhone}`);
   }
 
   createOtpSession(formattedPhone, otpCode, sessionId);
 
-  console.log(`[OTP] Generated verification session for ${formattedPhone}. 2Factor Session ID: ${sessionId}, Code: ${otpCode}`);
+  console.log(`[OTP] Generated verification session for ${formattedPhone}. Provider Session ID: ${sessionId}, Code: ${otpCode}`);
 
   return res.json({
     success: true,
     isNewUser,
-    message: (has2Factor || hasTwilio)
+    message: (hasMinimoth || has2Factor || hasTwilio)
       ? 'Verification code sent successfully.'
       : `Verification code generated successfully. [Mock Console Code: ${otpCode}]`
   });
@@ -179,7 +190,12 @@ router.post('/otp/verify', authLimiter, validate(otpVerifySchema), async (req, r
   }
 
   let isMatched = false;
-  if (cachedOtp.sessionId) {
+  const hasMinimoth = !!process.env.MINIMOTH_API_KEY;
+
+  if (hasMinimoth) {
+    // Verify via MiniMoth API
+    isMatched = await verifyMinimothOtp(formattedPhone, code);
+  } else if (cachedOtp.sessionId) {
     // Verify via 2Factor verify API
     isMatched = await verifyTwoFactorOtp(cachedOtp.sessionId, code);
   } else {
