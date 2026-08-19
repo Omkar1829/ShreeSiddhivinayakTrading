@@ -26,7 +26,7 @@ Thumbs.db
 
 # Documentation & Markdown files
 *.md
-**/*.md
+!README.md
 docs/
 
 # Serena IDE configurations
