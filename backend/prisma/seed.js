@@ -11,7 +11,7 @@ async function main() {
     { key: 'store_name', value: 'SHRI SIDDHIVINAYAK TRADING' },
     { key: 'logo_url', value: '' },
     { key: 'banner_url', value: '' },
-    { key: 'phone_number', value: '+919999999999' },
+    { key: 'phone_number', value: '+91 88792 79207' },
     { key: 'whatsapp_number', value: '+919999999999' },
     { key: 'address', value: 'Shop No. 4, Opp. Krishna Tower, Uran Naka, Panvel - 410206, Maharashtra, India' },
     { key: 'opening_time', value: '08:00' },

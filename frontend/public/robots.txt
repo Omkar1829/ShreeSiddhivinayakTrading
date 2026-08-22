@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /orders
+Disallow: /profile
+Disallow: /delivery/
+
+Sitemap: https://shreesiddhivinayaktrading.in/sitemap.xml
