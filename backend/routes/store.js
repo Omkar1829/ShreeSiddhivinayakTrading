@@ -67,7 +67,7 @@ router.get('/settings', async (req, res) => {
 
     // Ensure default settings are returned if DB is unseeded
     const defaultConfigs = {
-      store_name: "SHRI SIDDHIVINAYAK TRADING",
+      store_name: "SHREE SIDDHIVINAYAK TRADING",
       logo_url: "",
       banner_url: "",
       phone_number: "+919833607049",

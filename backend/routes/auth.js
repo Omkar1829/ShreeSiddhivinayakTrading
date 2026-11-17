@@ -130,7 +130,7 @@ router.post('/otp/request', authLimiter, validate(otpRequestSchema), async (req,
       const expiryMinutes = Math.round(expirySeconds / 60);
       await sendTwilioMessage(
         formattedPhone,
-        `Your Shri Siddhivinayak Trading verification code is: ${otpCode}. It will expire in ${expiryMinutes} minutes.`
+        `Your Shree Siddhivinayak Trading verification code is: ${otpCode}. It will expire in ${expiryMinutes} minutes.`
       );
     } catch (err) {
       console.error('[Twilio OTP Error] Failed to send message via Twilio REST:', err.message);

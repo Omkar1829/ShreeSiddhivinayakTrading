@@ -136,7 +136,7 @@ export default function AdminInventory() {
   const uniqueCategories = Array.from(new Set(products.map(p => p.category?.name).filter(Boolean)));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-10 space-y-8">
       
       {/* Header */}
       <div className="flex items-center justify-between">

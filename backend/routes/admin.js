@@ -48,6 +48,7 @@ const manualOrderSchema = yup.object().shape({
   recipientName: yup.string().required('Customer name is required.'),
   recipientPhone: yup.string().required('Customer phone is required.'),
   deliveryAddress: yup.string().required('Counter description or address is required.'),
+  paymentMethod: yup.string().optional().default('CASH'),
   items: yup.array().of(
     yup.object().shape({
       variantId: yup.string().uuid().required(),
@@ -551,7 +552,7 @@ router.patch('/orders/:id/assign-delivery', validate(deliveryAssignSchema), asyn
  * Deducts stock immediately.
  */
 router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
-  const { recipientName, recipientPhone, deliveryAddress, items } = req.body;
+  const { recipientName, recipientPhone, deliveryAddress, items, paymentMethod } = req.body;
 
   try {
     const manualOrder = await prisma.$transaction(async (tx) => {
@@ -609,7 +610,7 @@ router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
         data: {
           orderNumber,
           status: 'DELIVERED', // Manual sale is immediately delivered
-          paymentMethod: 'COD',
+          paymentMethod: paymentMethod || 'CASH',
           totalAmount,
           deliveryCharge: 0.00,
           recipientName,
@@ -619,6 +620,9 @@ router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
           items: {
             create: orderItems
           }
+        },
+        include: {
+          items: true
         }
       });
 

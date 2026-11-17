@@ -6,6 +6,7 @@ import { selectCartCount } from '../store/cartSlice';
 import { selectIsStoreOpen } from '../store/storeSlice';
 import LoginModal from './LoginModal';
 import { ShoppingCart, User, LogOut, LayoutDashboard, Shield, Menu, X, Clock } from 'lucide-react';
+import { formatStoreTime } from '../utils/formatTime';
 
 export default function Navbar() {
   const dispatch = useDispatch();
@@ -28,7 +29,7 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm backdrop-blur-md bg-opacity-95">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex h-16 items-center justify-between">
 
             {/* Logo */}
@@ -52,7 +53,7 @@ export default function Navbar() {
                   {isStoreOpen ? 'Store Open' : 'Store Closed'}
                 </span>
                 <span className="text-gray-400 font-normal">
-                  ({storeSettings?.opening_time || '08:00'} - {storeSettings?.closing_time || '21:00'})
+                  ({formatStoreTime(storeSettings?.opening_time || '08:00')} - {formatStoreTime(storeSettings?.closing_time || '21:00')})
                 </span>
               </div>
             </div>
@@ -168,7 +169,7 @@ export default function Navbar() {
                 {isStoreOpen ? 'Store Open & Accepting Orders' : 'Store Closed'}
               </span>
               <span className="text-gray-500 text-[10px] ml-auto flex items-center gap-0.5">
-                <Clock size={12} /> {storeSettings?.opening_time || '08:00'} - {storeSettings?.closing_time || '21:00'}
+                <Clock size={12} /> {formatStoreTime(storeSettings?.opening_time || '08:00')} - {formatStoreTime(storeSettings?.closing_time || '21:00')}
               </span>
             </div>
 

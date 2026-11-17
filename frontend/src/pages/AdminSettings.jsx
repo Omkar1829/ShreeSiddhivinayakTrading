@@ -58,7 +58,7 @@ export default function AdminSettings() {
     }
 
     if (storeSettings) {
-      setStoreName(storeSettings.store_name || 'SHRI SIDDHIVINAYAK TRADING');
+      setStoreName(storeSettings.store_name || 'Shree Siddhivinayak Trading');
       setLogoUrl(storeSettings.logo_url || '');
       setBannerUrl(storeSettings.banner_url || '');
       setPhone(storeSettings.phone_number || '+919876543210');

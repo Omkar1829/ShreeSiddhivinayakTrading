@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   settings: {
-    store_name: "SHRI SIDDHIVINAYAK TRADING",
+    store_name: "SHREE SIDDHIVINAYAK TRADING",
     logo_url: "",
     banner_url: "",
     phone_number: "+919999999999",

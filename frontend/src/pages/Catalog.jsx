@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setProducts, setCategories, setBrands, setFilters, setCatalogLoading, setCatalogError } from '../store/catalogSlice';
 import { addToCart, updateQuantity } from '../store/cartSlice';
 import api from '../services/api';
+import ProductCard from '../components/ProductCard';
 import { Search, ShoppingBag, Filter, ArrowUpDown } from 'lucide-react';
 
 export default function Catalog() {
@@ -133,7 +134,7 @@ export default function Catalog() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-12">
       
       {/* Search Bar & Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -266,105 +267,9 @@ export default function Catalog() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {products.map((product) => {
-                const defaultVariant = product.variants?.[0];
-                const quantityInCart = defaultVariant ? getCartQuantity(defaultVariant.id) : 0;
-
-                return (
-                  <div
-                    key={product.id}
-                    className="flex flex-col bg-white border border-gray-100 rounded-2xl p-3 hover:shadow-xl hover:border-primary-100 transition relative group"
-                  >
-                    {/* Image */}
-                    <Link to={`/catalog/${product.slug}`} className="block overflow-hidden rounded-xl bg-gray-50 aspect-square group-hover:opacity-90 transition">
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          className="h-full w-full object-cover group-hover:scale-102 transition duration-300"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-gray-300 font-bold text-xs uppercase bg-gray-100">
-                          {product.name.slice(0, 2)}
-                        </div>
-                      )}
-                    </Link>
-
-                    {/* Metadata */}
-                    <div className="mt-3 flex-1 flex flex-col">
-                      <span className="text-[10px] font-bold text-accent-600 uppercase tracking-wider">
-                        {product.brand?.name || 'Local'}
-                      </span>
-                      <Link to={`/catalog/${product.slug}`} className="block hover:text-primary-800 transition">
-                        <h4 className="font-bold text-xs sm:text-sm text-gray-900 leading-tight line-clamp-2 mt-0.5 min-h-[32px]">
-                          {product.name}
-                        </h4>
-                      </Link>
-
-                      {/* Display variants info */}
-                      {defaultVariant ? (
-                        <div className="mt-auto pt-3">
-                          <span className="text-[10px] text-gray-400 font-bold block">
-                            {defaultVariant.attributeName}: {defaultVariant.attributeValue}
-                          </span>
-                          
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-sm font-black text-gray-900">
-                              ₹{Number(defaultVariant.price).toFixed(2)}
-                            </span>
-
-                            {defaultVariant.stock > 0 ? (
-                              quantityInCart > 0 ? (
-                                <div className="flex items-center border border-primary-800 rounded-lg overflow-hidden">
-                                  <button
-                                    onClick={() => dispatch(updateQuantity({
-                                      variantId: defaultVariant.id,
-                                      quantity: quantityInCart - 1
-                                    }))}
-                                    className="px-2 py-1 text-xs font-bold text-primary-800 bg-primary-50 hover:bg-primary-100 transition"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="px-2 text-xs font-black text-primary-800">{quantityInCart}</span>
-                                  <button
-                                    onClick={() => dispatch(updateQuantity({
-                                      variantId: defaultVariant.id,
-                                      quantity: quantityInCart + 1
-                                    }))}
-                                    className="px-2 py-1 text-xs font-bold text-primary-800 bg-primary-50 hover:bg-primary-100 transition"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => dispatch(addToCart({
-                                    variantId: defaultVariant.id,
-                                    productId: product.id,
-                                    name: product.name,
-                                    variantName: `${defaultVariant.attributeName}: ${defaultVariant.attributeValue}`,
-                                    price: defaultVariant.price,
-                                    quantity: 1,
-                                    imageUrl: product.imageUrl,
-                                    stock: defaultVariant.stock
-                                  }))}
-                                  className="rounded-lg bg-primary-800 px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-900 transition shadow-sm"
-                                >
-                                  Add
-                                </button>
-                              )
-                            ) : (
-                              <span className="text-[10px] font-bold text-red-500">Out of Stock</span>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-gray-400 mt-auto font-medium">Unavailable</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
             </div>
           )}
 

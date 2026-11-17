@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 // Layout Wrappers
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import MobileBottomNav from './components/MobileBottomNav';
 import AdminLayout from './components/AdminLayout';
 import ToastContainer from './components/ToastContainer';
 
@@ -29,6 +30,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminProducts = lazy(() => import('./pages/AdminProducts'));
 const AdminInventory = lazy(() => import('./pages/AdminInventory'));
 const AdminOrders = lazy(() => import('./pages/AdminOrders'));
+const AdminPOS = lazy(() => import('./pages/AdminPOS'));
 const AdminCustomers = lazy(() => import('./pages/AdminCustomers'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
@@ -81,6 +83,7 @@ export default function App() {
               <Route path="/admin/products" element={<AdminProducts />} />
               <Route path="/admin/inventory" element={<AdminInventory />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/pos" element={<AdminPOS />} />
               <Route path="/admin/customers" element={<AdminCustomers />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
@@ -124,7 +127,7 @@ export default function App() {
     <div className="flex flex-col min-h-screen min-w-[320px] bg-gray-50 text-gray-900">
       {!isScannerPage && <Navbar />}
 
-      <main className="flex-1">
+      <main className="flex-1 pb-20 md:pb-0">
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Customer Public Routes */}
@@ -150,6 +153,7 @@ export default function App() {
       </main>
 
       {!isScannerPage && <Footer />}
+      {!isScannerPage && <MobileBottomNav />}
       <ToastContainer />
     </div>
   );

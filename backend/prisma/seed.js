@@ -8,7 +8,7 @@ async function main() {
 
   // 1. Create Default Store Settings
   const storeSettings = [
-    { key: 'store_name', value: 'SHRI SIDDHIVINAYAK TRADING' },
+    { key: 'store_name', value: 'SHREE SIDDHIVINAYAK TRADING' },
     { key: 'logo_url', value: '' },
     { key: 'banner_url', value: '' },
     { key: 'phone_number', value: '+91 88792 79207' },

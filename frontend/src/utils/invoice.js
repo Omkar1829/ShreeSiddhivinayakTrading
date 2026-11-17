@@ -133,11 +133,11 @@ export const downloadInvoicePdf = (order) => {
         <div class="invoice-box">
           <div class="header">
             <div>
-              <div class="logo">SHRI SIDDHIVINAYAK TRADING</div>
-              <p style="font-size: 11px; color: #4b5563; margin: 4px 0 0 0; font-weight: 600;">Kirana & Dairy Merchant</p>
+              <div class="logo">SHREE SIDDHIVINAYAK TRADING</div>
+              <p style="font-size: 11px; color: #4b5563; margin: 4px 0 0 0; font-weight: 600;">Kirana & Daily Essentials Merchant</p>
             </div>
             <div class="store-info">
-              <strong>Shri Siddhivinayak Trading</strong><br/>
+              <strong>Shree Siddhivinayak Trading</strong><br/>
               Shop No. 4, Uran Naka, Near Krishna Tower<br/>
               Panvel, Navi Mumbai, MH - 410206<br/>
               Phone: +91 9876543210
@@ -196,7 +196,7 @@ export const downloadInvoicePdf = (order) => {
           </table>
 
           <div class="footer">
-            Thank you for shopping with Shri Siddhivinayak Trading!<br/>
+            Thank you for shopping with Shree Siddhivinayak Trading!<br/>
             For any queries or support, contact Yatish or Manas at +91 9876543210.
           </div>
         </div>
@@ -211,3 +211,6 @@ export const downloadInvoicePdf = (order) => {
   `);
   printWindow.document.close();
 };
+
+export const printInvoice = downloadInvoicePdf;
+

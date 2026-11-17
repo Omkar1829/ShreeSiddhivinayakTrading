@@ -449,7 +449,7 @@ export default function AdminProducts() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-10 space-y-8">
       
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -552,14 +552,29 @@ export default function AdminProducts() {
                         )}
                       </div>
                       <div>
-                        <span className="font-extrabold text-gray-900 block">{prod.name}</span>
-                        <span className="text-[10px] text-gray-400 block font-semibold">{prod.variants?.length || 0} variant options</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-extrabold text-gray-900 block">{prod.name}</span>
+                          {prod.variants?.length > 0 && prod.variants.every((v) => v.stock <= 0) ? (
+                            <span className="inline-flex rounded-md bg-red-50 text-red-700 px-1.5 py-0.5 text-[9px] font-black border border-red-200">
+                              Out of Stock
+                            </span>
+                          ) : prod.variants?.some((v) => v.status === 'ACTIVE' && v.stock < 5) ? (
+                            <span className="inline-flex rounded-md bg-amber-50 text-amber-700 px-1.5 py-0.5 text-[9px] font-black border border-amber-200">
+                              Low Stock
+                            </span>
+                          ) : null}
+                        </div>
+                        <span className="text-[10px] text-gray-400 block font-semibold mt-0.5">
+                          {(prod.variants?.length || 0) === 1 ? '1 variant' : `${prod.variants?.length || 0} variants`}
+                        </span>
                       </div>
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="block font-bold text-gray-700">{prod.sku || 'No SKU'}</span>
-                    <span className="block text-[10px] text-gray-400 mt-0.5">{prod.barcode || 'No Barcode'}</span>
+                    <span className="block font-bold text-gray-750">{prod.sku || '—'}</span>
+                    {prod.barcode && (
+                      <span className="block text-[10px] text-gray-400 mt-0.5 font-mono">{prod.barcode}</span>
+                    )}
                   </td>
                   <td className="p-4">
                     <span className="block font-bold text-gray-750">{prod.category?.name || '-'}</span>
