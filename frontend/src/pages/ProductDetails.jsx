@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, updateQuantity } from '../store/cartSlice';
+import { calculatePricing } from '../utils/pricing';
 import api from '../services/api';
-import { ArrowLeft, ShoppingBag, ShieldCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, ShieldCheck, Loader2, Tag } from 'lucide-react';
 
 export default function ProductDetails() {
   const { slug } = useParams();
@@ -11,6 +12,7 @@ export default function ProductDetails() {
   const dispatch = useDispatch();
 
   const cartItems = useSelector((state) => state.cart.items);
+  const storeSettings = useSelector((state) => state.store.settings);
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +46,16 @@ export default function ProductDetails() {
   };
 
   const currentCartQty = selectedVariant ? getCartQuantity(selectedVariant.id) : 0;
+  const pricing = selectedVariant
+    ? calculatePricing(
+        selectedVariant.price,
+        selectedVariant.mrp,
+        product?.id,
+        storeSettings?.store_offers,
+        selectedVariant.id,
+        storeSettings?.store_variant_offers
+      )
+    : null;
 
   if (loading) {
     return (
@@ -69,7 +81,7 @@ export default function ProductDetails() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-12">
       
       {/* Back button */}
       <button 
@@ -81,10 +93,10 @@ export default function ProductDetails() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 bg-white rounded-3xl border border-gray-100 p-6 md:p-10 shadow-sm">
         
-        {/* Left Side Image */}
-        <div className="rounded-2xl overflow-hidden bg-gray-50 aspect-square max-w-md mx-auto w-full border border-gray-100">
+        {/* Left Side Image: Strict fixed height boundary */}
+        <div className="rounded-2xl overflow-hidden bg-gray-50 h-80 sm:h-96 max-w-md mx-auto w-full border border-gray-100 flex items-center justify-center p-4">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+            <img src={product.imageUrl} alt={product.name} className="max-h-full max-w-full object-contain" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-gray-300 font-bold text-lg uppercase bg-gray-100">
               {product.name.slice(0, 2)}
@@ -104,21 +116,51 @@ export default function ProductDetails() {
               {product.name}
             </h1>
             <p className="text-xs text-gray-400 font-medium">
-              Category: <span className="text-gray-600 font-bold">{product.category?.name}</span> • Subcategory: <span className="text-gray-600 font-bold">{product.subcategory?.name}</span>
+              Category: <span className="text-gray-600 font-bold">{product.category?.name || 'General'}</span>
+              {product.subcategory?.name && (
+                <> • Subcategory: <span className="text-gray-600 font-bold">{product.subcategory.name}</span></>
+              )}
             </p>
           </div>
+
+          {/* Promotional Offer Banner */}
+          {pricing && pricing.hasDiscount && pricing.offerTitle && (
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-2.5 text-xs text-emerald-800 font-bold shadow-xs">
+              <Tag size={16} className="text-emerald-700 shrink-0" />
+              <span>
+                🔥 <strong>Special Offer:</strong> {pricing.offerTitle} ({pricing.discountPercent}% OFF applied!)
+              </span>
+            </div>
+          )}
 
           <hr className="border-gray-100" />
 
           {/* Pricing & Stock Details */}
-          {selectedVariant && (
-            <div className="flex items-baseline gap-4">
-              <span className="text-3xl font-black text-gray-900">
-                ₹{Number(selectedVariant.price).toFixed(2)}
-              </span>
-              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${selectedVariant.stock > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                {selectedVariant.stock > 0 ? `In Stock (${selectedVariant.stock} left)` : 'Out of Stock'}
-              </span>
+          {selectedVariant && pricing && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="text-3xl font-black text-emerald-700">
+                  ₹{pricing.price.toFixed(2)}
+                </span>
+                {pricing.hasDiscount && pricing.mrp > pricing.price && (
+                  <span className="text-lg text-gray-400 font-semibold line-through">
+                    ₹{pricing.mrp.toFixed(0)}
+                  </span>
+                )}
+                {pricing.hasDiscount && pricing.discountPercent > 0 && (
+                  <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-700 border border-emerald-200 uppercase">
+                    {pricing.discountPercent}% OFF
+                  </span>
+                )}
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${selectedVariant.stock > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                  {selectedVariant.stock > 0 ? `● In Stock (${selectedVariant.stock} left)` : '● Out of Stock'}
+                </span>
+              </div>
+              {pricing.hasDiscount && pricing.savings > 0 && (
+                <span className="text-xs text-emerald-600 font-bold">
+                  You save ₹{pricing.savings.toFixed(0)} on this pack!
+                </span>
+              )}
             </div>
           )}
 
@@ -219,6 +261,68 @@ export default function ProductDetails() {
         </div>
 
       </div>
+
+      {/* Sticky Mobile Add-to-Cart Bar */}
+      {selectedVariant && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 p-3 shadow-2xl md:hidden flex items-center justify-between gap-3">
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold text-gray-900 truncate">
+              {selectedVariant.attributeValue}
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-base font-black text-emerald-700">
+                ₹{Number(selectedVariant.price).toFixed(2)}
+              </span>
+              {pricing && pricing.mrp > pricing.price && (
+                <span className="text-xs text-gray-400 line-through">
+                  ₹{pricing.mrp.toFixed(0)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {selectedVariant.stock > 0 ? (
+            currentCartQty > 0 ? (
+              <div className="flex items-center border border-primary-850 rounded-xl overflow-hidden shadow-sm bg-white shrink-0">
+                <button
+                  type="button"
+                  onClick={() => dispatch(updateQuantity({ variantId: selectedVariant.id, quantity: currentCartQty - 1 }))}
+                  className="px-3 py-2 text-sm font-black text-primary-800 bg-primary-50 hover:bg-primary-100 transition"
+                >
+                  -
+                </button>
+                <span className="px-3 text-sm font-black text-primary-800">{currentCartQty}</span>
+                <button
+                  type="button"
+                  onClick={() => dispatch(updateQuantity({ variantId: selectedVariant.id, quantity: currentCartQty + 1 }))}
+                  className="px-3 py-2 text-sm font-black text-primary-800 bg-primary-50 hover:bg-primary-100 transition"
+                >
+                  +
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => dispatch(addToCart({
+                  variantId: selectedVariant.id,
+                  productId: product.id,
+                  name: product.name,
+                  variantName: `${selectedVariant.attributeName}: ${selectedVariant.attributeValue}`,
+                  price: Number(selectedVariant.price),
+                  quantity: 1,
+                  imageUrl: product.imageUrl,
+                  stock: selectedVariant.stock
+                }))}
+                className="flex items-center gap-1.5 rounded-xl bg-primary-800 px-5 py-2.5 text-xs font-bold text-white shadow-md active:scale-95 transition shrink-0"
+              >
+                <ShoppingBag size={15} /> Add to Cart
+              </button>
+            )
+          ) : (
+            <span className="text-xs font-bold text-red-500 py-2">Out of Stock</span>
+          )}
+        </div>
+      )}
 
     </div>
   );

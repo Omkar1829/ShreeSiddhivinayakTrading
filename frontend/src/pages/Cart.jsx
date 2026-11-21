@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { removeFromCart, updateQuantity, selectCartTotal, clearCart } from '../store/cartSlice';
+import { removeFromCart, updateQuantity, addToCart, selectCartTotal, clearCart } from '../store/cartSlice';
 import { selectIsStoreOpen } from '../store/storeSlice';
+import api from '../services/api';
 import LoginModal from '../components/LoginModal';
-import { Trash2, ShoppingCart, ArrowRight, ArrowLeft, Clock, AlertTriangle } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowRight, ArrowLeft, Clock, AlertTriangle, Truck, Sparkles, Plus } from 'lucide-react';
 
 export default function Cart() {
   const dispatch = useDispatch();
@@ -17,6 +18,28 @@ export default function Cart() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const res = await api.get('/api/products?limit=8');
+        if (res.data.success) {
+          // Filter out items already in cart
+          const cartProdIds = new Set(cartItems.map((i) => i.productId));
+          const recs = res.data.products.filter((p) => !cartProdIds.has(p.id)).slice(0, 4);
+          setRecommendations(recs);
+        }
+      } catch (err) {
+        console.error('Failed to load recommendations:', err);
+      }
+    };
+    fetchRecommendations();
+  }, [cartItems]);
+
+  const freeDeliveryThreshold = Number(storeSettings?.free_delivery_threshold) || 499;
+  const amountNeededForFreeDelivery = Math.max(0, freeDeliveryThreshold - cartTotal);
+  const freeDeliveryProgress = Math.min(100, Math.round((cartTotal / freeDeliveryThreshold) * 100));
 
   const handleCheckoutClick = () => {
     if (!isAuthenticated) {
@@ -45,9 +68,49 @@ export default function Cart() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-12">
       
-      <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-8">Shopping Cart</h1>
+      <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-6">Shopping Cart</h1>
+
+      {/* Free Delivery Dynamic Progress Banner */}
+      <div className="mb-6 rounded-2xl bg-white p-4 border border-emerald-150 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`p-2 rounded-xl shrink-0 ${
+                amountNeededForFreeDelivery === 0
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-emerald-50 text-emerald-700'
+              }`}
+            >
+              <Truck size={18} />
+            </div>
+            <div>
+              {amountNeededForFreeDelivery === 0 ? (
+                <span className="text-xs sm:text-sm font-black text-emerald-700 flex items-center gap-1">
+                  <Sparkles size={14} className="text-emerald-500" /> You've unlocked FREE Doorstep Delivery!
+                </span>
+              ) : (
+                <span className="text-xs sm:text-sm font-bold text-gray-800">
+                  Add <strong className="text-emerald-700 font-black">₹{amountNeededForFreeDelivery.toFixed(0)}</strong> more to get <strong className="text-emerald-700">FREE Delivery</strong>
+                </span>
+              )}
+            </div>
+          </div>
+          <span className="text-xs font-bold text-gray-500">
+            ₹{cartTotal.toFixed(0)} / ₹{freeDeliveryThreshold}
+          </span>
+        </div>
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              amountNeededForFreeDelivery === 0 ? 'bg-emerald-500' : 'bg-emerald-600'
+            }`}
+            style={{ width: `${freeDeliveryProgress}%` }}
+          />
+        </div>
+      </div>
 
       {/* Store Closed Warning Banner */}
       {!isStoreOpen && (
@@ -135,6 +198,72 @@ export default function Cart() {
             </div>
 
           </div>
+
+          {/* Frequently Bought Together / Add Essentials */}
+          {recommendations.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-sm text-gray-900 tracking-tight flex items-center gap-1.5">
+                    <Sparkles size={16} className="text-accent-500" />
+                    Frequently Bought Together
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Quickly add kitchen essentials before checkout</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {recommendations.map((prod) => {
+                  const defaultVar = prod.variants?.[0];
+                  if (!defaultVar) return null;
+                  return (
+                    <div
+                      key={prod.id}
+                      className="flex items-center justify-between p-3 rounded-xl border border-gray-150 hover:border-emerald-200 bg-gray-50/50 transition gap-3"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="h-12 w-12 rounded-lg bg-white border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
+                          {prod.imageUrl ? (
+                            <img src={prod.imageUrl} alt={prod.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-gray-400">{prod.name.slice(0, 2)}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-xs text-gray-900 truncate">{prod.name}</h4>
+                          <span className="text-[10px] text-gray-500 font-semibold block">
+                            {defaultVar.attributeValue} • <strong className="text-emerald-700">₹{Number(defaultVar.price).toFixed(0)}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          dispatch(
+                            addToCart({
+                              variantId: defaultVar.id,
+                              productId: prod.id,
+                              name: prod.name,
+                              variantName: `${defaultVar.attributeName}: ${defaultVar.attributeValue}`,
+                              price: Number(defaultVar.price),
+                              quantity: 1,
+                              imageUrl: prod.imageUrl,
+                              stock: defaultVar.stock
+                            })
+                          )
+                        }
+                        className="rounded-lg bg-primary-800 p-2 text-white hover:bg-primary-900 transition shadow-xs shrink-0"
+                        title="Add to cart"
+                      >
+                        <Plus size={14} className="stroke-[3]" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Order Summary Card */}

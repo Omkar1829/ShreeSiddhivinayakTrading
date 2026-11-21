@@ -4,7 +4,25 @@ import { useNavigate } from 'react-router-dom';
 import { setSettings } from '../store/storeSlice';
 import api from '../services/api';
 import { toast } from '../utils/toast';
-import { Store, Loader2, ArrowLeft, Save, ShieldCheck, Users, Trash2, Plus, UserPlus, Bell } from 'lucide-react';
+import { formatTime } from '../utils/formatTime';
+import { Html5Qrcode } from 'html5-qrcode';
+import {
+  Store,
+  Loader2,
+  ArrowLeft,
+  Save,
+  ShieldCheck,
+  Users,
+  Trash2,
+  Plus,
+  UserPlus,
+  Bell,
+  QrCode,
+  CheckCircle2,
+  AlertTriangle,
+  Upload,
+  Clock
+} from 'lucide-react';
 
 export default function AdminSettings() {
   const navigate = useNavigate();
@@ -27,6 +45,12 @@ export default function AdminSettings() {
   const [storeStatus, setStoreStatus] = useState('OPEN');
   const [auditLogsEnabled, setAuditLogsEnabled] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+
+  // Payment UPI & QR states
+  const [upiId, setUpiId] = useState('');
+  const [upiQrUrl, setUpiQrUrl] = useState('');
+  const [qrVerifying, setQrVerifying] = useState(false);
+  const [qrVerified, setQrVerified] = useState(false);
 
   // Staff registry states
   const [team, setTeam] = useState([]);
@@ -58,20 +82,93 @@ export default function AdminSettings() {
     }
 
     if (storeSettings) {
-      setStoreName(storeSettings.store_name || 'SHRI SIDDHIVINAYAK TRADING');
+      setStoreName(storeSettings.store_name || 'Shree Siddhivinayak Trading');
       setLogoUrl(storeSettings.logo_url || '');
       setBannerUrl(storeSettings.banner_url || '');
-      setPhone(storeSettings.phone_number || '+919876543210');
-      setWhatsapp(storeSettings.whatsapp_number || '+919876543210');
+      setPhone(storeSettings.phone_number || '+918879279207');
+      setWhatsapp(storeSettings.whatsapp_number || '+919833607049');
       setAddress(storeSettings.address || 'Shop No. 4, Uran Naka, Panvel - 410206');
       setOpenTime(storeSettings.opening_time || '08:00');
       setCloseTime(storeSettings.closing_time || '21:00');
       setStoreStatus(storeSettings.store_status || 'OPEN');
       setAuditLogsEnabled(storeSettings.audit_logs_enabled === 'true');
+      setUpiId(storeSettings.upi_id || '9833607049@upi');
+      setUpiQrUrl(storeSettings.upi_qr_url || '');
+      if (storeSettings.upi_qr_url) {
+        setQrVerified(true);
+      }
     }
 
     loadTeam();
   }, [isAuthenticated, user, storeSettings, navigate]);
+
+  const handleQrUploadAndVerify = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setQrVerifying(true);
+    setQrVerified(false);
+
+    try {
+      // Decode QR Code using html5-qrcode
+      const html5QrCode = new Html5Qrcode('qr-reader-hidden-settings');
+      let decodedText = null;
+
+      try {
+        decodedText = await html5QrCode.scanFile(file, true);
+      } catch (scanErr) {
+        console.warn('QR decode attempt failed:', scanErr);
+      }
+
+      // If decode failed or does not look like a payment QR
+      if (!decodedText || (!decodedText.toLowerCase().includes('upi://pay') && !decodedText.toLowerCase().includes('pa='))) {
+        toast.error('❌ Verification Failed: The uploaded image is not a valid UPI payment QR code! Please upload a valid PhonePe, Google Pay, Paytm, or BHIM UPI QR.');
+        setQrVerifying(false);
+        return;
+      }
+
+      // Valid payment QR detected! Extract UPI ID if present
+      let detectedVpa = '';
+      const vpaMatch = decodedText.match(/pa=([^&]+)/i);
+      if (vpaMatch && vpaMatch[1]) {
+        detectedVpa = decodeURIComponent(vpaMatch[1]);
+        setUpiId(detectedVpa);
+      }
+
+      toast.success(`✅ Verified UPI Payment QR! ${detectedVpa ? `(UPI: ${detectedVpa})` : ''}`);
+
+      // Upload file to server
+      const formData = new FormData();
+      formData.append('qrImage', file);
+      const uploadRes = await api.post('/api/store/upload-qr', formData);
+      if (uploadRes.data.success) {
+        setUpiQrUrl(uploadRes.data.url);
+        setQrVerified(true);
+        toast.success('Payment QR uploaded! Remember to click "Save Config Settings".');
+      }
+    } catch (err) {
+      console.error('QR verification error:', err);
+      toast.error('Failed to verify QR code. Please ensure the QR code image is clear.');
+    } finally {
+      setQrVerifying(false);
+    }
+  };
+
+  const handleDeleteQr = async () => {
+    setUpiQrUrl('');
+    setQrVerified(false);
+    try {
+      const res = await api.put('/api/store/settings', {
+        settings: [{ key: 'upi_qr_url', value: '' }]
+      });
+      if (res.data.success) {
+        dispatch(setSettings(res.data.settings));
+        toast.success('Store QR code removed successfully!');
+      }
+    } catch (err) {
+      toast.error('Failed to remove QR code from store settings.');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,7 +185,9 @@ export default function AdminSettings() {
         { key: 'opening_time', value: openTime },
         { key: 'closing_time', value: closeTime },
         { key: 'store_status', value: storeStatus },
-        { key: 'audit_logs_enabled', value: auditLogsEnabled ? 'true' : 'false' }
+        { key: 'audit_logs_enabled', value: auditLogsEnabled ? 'true' : 'false' },
+        { key: 'upi_id', value: upiId },
+        { key: 'upi_qr_url', value: upiQrUrl }
       ]
     };
 
@@ -181,7 +280,9 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-8 space-y-8">
+      {/* Hidden container for QR scanning */}
+      <div id="qr-reader-hidden-settings" style={{ display: 'none' }}></div>
       
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -190,7 +291,7 @@ export default function AdminSettings() {
         </button>
         <div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Store Settings</h1>
-          <p className="text-xs text-gray-500 mt-1">Configure business operating timings, override statuses, and manage staff credentials.</p>
+          <p className="text-xs text-gray-500 mt-1">Configure business operating timings, override statuses, payment UPI QR, and manage staff credentials.</p>
         </div>
       </div>
 
@@ -199,7 +300,7 @@ export default function AdminSettings() {
         <form onSubmit={handleSubmit} className="space-y-6 text-xs font-semibold text-gray-750">
           
           <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5 border-b pb-3">
-            <Store size={18} className="text-primary-850" /> Business Info
+            <Store size={18} className="text-primary-850" /> Business Info & Timings
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -250,28 +351,42 @@ export default function AdminSettings() {
             </div>
           </div>
 
+          {/* Opening & Closing Time Pickers */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label className="block text-[10px] text-gray-450 uppercase mb-2">Opening Time (24h format) *</label>
-              <input
-                type="text"
-                placeholder="08:00"
-                value={openTime}
-                onChange={(e) => setOpenTime(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 py-3 px-4 text-xs text-center focus:outline-none"
-                required
-              />
+              <label className="block text-[10px] text-gray-450 uppercase mb-2">
+                Opening Time (Time Selector) *
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="time"
+                  value={openTime}
+                  onChange={(e) => setOpenTime(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 py-2.5 px-4 text-xs font-bold text-gray-900 focus:outline-none focus:border-emerald-600 bg-white"
+                  required
+                />
+                <span className="shrink-0 rounded-lg bg-emerald-50 px-2.5 py-2 text-xs font-black text-emerald-800 border border-emerald-200">
+                  {formatTime(openTime)}
+                </span>
+              </div>
             </div>
+
             <div>
-              <label className="block text-[10px] text-gray-450 uppercase mb-2">Closing Time (24h format) *</label>
-              <input
-                type="text"
-                placeholder="21:00"
-                value={closeTime}
-                onChange={(e) => setCloseTime(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 py-3 px-4 text-xs text-center focus:outline-none"
-                required
-              />
+              <label className="block text-[10px] text-gray-450 uppercase mb-2">
+                Closing Time (Time Selector) *
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="time"
+                  value={closeTime}
+                  onChange={(e) => setCloseTime(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 py-2.5 px-4 text-xs font-bold text-gray-900 focus:outline-none focus:border-emerald-600 bg-white"
+                  required
+                />
+                <span className="shrink-0 rounded-lg bg-emerald-50 px-2.5 py-2 text-xs font-black text-emerald-800 border border-emerald-200">
+                  {formatTime(closeTime)}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -284,6 +399,92 @@ export default function AdminSettings() {
               rows={3}
               required
             />
+          </div>
+
+          {/* BOX: Payment UPI & POS QR Code Configuration */}
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-emerald-200">
+              <div className="flex items-center gap-2">
+                <QrCode size={18} className="text-emerald-700" />
+                <h4 className="font-bold text-xs sm:text-sm text-gray-900">
+                  POS Counter UPI & Payment QR Code
+                </h4>
+              </div>
+              {qrVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-300">
+                  <CheckCircle2 size={12} /> Verified Payment QR
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] text-gray-600 leading-relaxed">
+              Upload your shop PhonePe, Google Pay, Paytm, or BHIM QR standee. The system automatically verifies that the image is a valid UPI payment QR code before saving it to prevent invalid scans at the POS register.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">
+                  Shop UPI ID (VPA) *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 9833607049@upi or merchant@okaxis"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 py-2.5 px-3.5 text-xs font-bold text-gray-900 focus:outline-none focus:border-emerald-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-500 uppercase font-black tracking-wider mb-1.5">
+                  Upload & Verify UPI QR Photo
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={qrVerifying}
+                  onChange={handleQrUploadAndVerify}
+                  className="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-emerald-700 file:text-white file:font-bold file:text-xs hover:file:bg-emerald-800 cursor-pointer"
+                />
+                {qrVerifying && (
+                  <p className="text-[10px] text-emerald-700 font-bold mt-1 flex items-center gap-1">
+                    <Loader2 size={12} className="animate-spin" /> Verifying UPI payload in QR image...
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* QR Photo Preview or Empty State */}
+            {upiQrUrl ? (
+              <div className="flex items-center gap-4 bg-white p-3.5 rounded-xl border border-emerald-300 shadow-xs">
+                <div className="h-16 w-16 bg-gray-50 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center p-1 shrink-0">
+                  <img src={upiQrUrl} alt="Store UPI QR" className="h-full w-full object-contain" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-bold text-gray-900 block truncate">
+                    Uploaded Payment QR (Active on POS)
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-mono block truncate">
+                    {upiQrUrl}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDeleteQr}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition border border-red-200 shrink-0"
+                  title="Delete QR Code from POS"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete QR Code</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-3 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-center">
+                <span className="text-xs text-gray-500 font-medium">
+                  No QR code uploaded yet. Upload a verified payment QR above to display it on the POS counter terminal.
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Audit Logging Toggle Switch */}

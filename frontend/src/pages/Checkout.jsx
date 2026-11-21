@@ -143,13 +143,32 @@ export default function Checkout() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-12">
       
       <div className="flex items-center gap-2 mb-8">
         <Link to="/cart" className="text-gray-500 hover:text-gray-900 transition">
           <ArrowLeft size={20} />
         </Link>
-        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Checkout Order</h1>
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Checkout Order</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Fast, secure doorstep delivery across Panvel</p>
+        </div>
+      </div>
+
+      {/* 3-Step Checkout Flow Indicator */}
+      <div className="mb-8 grid grid-cols-3 max-w-2xl text-center text-xs font-bold">
+        <Link to="/cart" className="flex items-center justify-center gap-2 text-emerald-700 py-2 border-b-2 border-emerald-600">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-black">1</span>
+          <span>Cart Basket</span>
+        </Link>
+        <div className="flex items-center justify-center gap-2 text-primary-900 py-2 border-b-2 border-primary-900 font-extrabold">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-800 text-white text-[10px] font-black">2</span>
+          <span>Delivery Address</span>
+        </div>
+        <div className="flex items-center justify-center gap-2 text-gray-400 py-2 border-b-2 border-gray-200">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-[10px] font-black">3</span>
+          <span>Payment</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -5,7 +5,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import api, { API_BASE_URL } from '../services/api';
 import { toast } from '../utils/toast';
 import { downloadInvoicePdf } from '../utils/invoice';
-import { Loader2, ArrowLeft, RefreshCw, ClipboardList, MapPin, Truck, ChevronDown, Check, X, ShieldAlert, Search } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw, ClipboardList, MapPin, Truck, ChevronDown, Check, X, ShieldAlert, Search, Store } from 'lucide-react';
+import AdminPOS from './AdminPOS';
 
 export default function AdminOrders() {
   const navigate = useNavigate();
@@ -120,7 +121,15 @@ export default function AdminOrders() {
     let eventSource = null;
     let pollInterval = null;
 
-    const handleRealtimeEvent = () => {
+    const handleRealtimeEvent = (e) => {
+      try {
+        const audio = new Audio('/notification.mp3');
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      } catch (err) {}
+      if (e?.type === 'ORDER_PLACED') {
+        toast.info('🔔 New Order Received!');
+      }
       loadOrdersData(false, debouncedSearch, page);
     };
 
@@ -251,7 +260,7 @@ export default function AdminOrders() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-10 space-y-8">
       
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -268,9 +277,9 @@ export default function AdminOrders() {
         <div className="flex gap-2.5">
           <button
             onClick={() => setIsManualOrderOpen(true)}
-            className="rounded-xl border border-primary-800 px-4 py-2.5 text-xs font-bold text-primary-800 hover:bg-primary-50 transition shadow-sm"
+            className="flex items-center gap-1.5 rounded-xl bg-primary-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-900 transition shadow-sm"
           >
-            Counter Sale POS
+            <Store size={15} /> Counter Sale POS
           </button>
           <button
             onClick={loadOrdersData}
@@ -285,15 +294,29 @@ export default function AdminOrders() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Tabs */}
         <div className="flex flex-wrap border-b border-gray-150 gap-1 sm:gap-2 flex-1">
-          {['ALL', 'ACTIVE', 'PENDING', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 py-2 text-xs font-bold border-b-2 transition ${activeTab === tab ? 'border-primary-800 text-primary-800' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
-            >
-              {tab.replace(/_/g, ' ')}
-            </button>
-          ))}
+          {['ALL', 'ACTIVE', 'PENDING', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((tab) => {
+            const isPendingTab = tab === 'PENDING';
+            const pendingCount = orders.filter((o) => o.status === 'PENDING').length;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+                  activeTab === tab
+                    ? 'border-primary-800 text-primary-800'
+                    : 'border-transparent text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <span>{tab.replace(/_/g, ' ')}</span>
+                {isPendingTab && pendingCount > 0 && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Search input */}
@@ -576,94 +599,14 @@ export default function AdminOrders() {
         </div>
       )}
 
-      {/* Counter POS Manual Order Modal */}
+      {/* Dedicated Full-Screen Counter POS System */}
       {isManualOrderOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div>
-              <h3 className="text-base font-bold text-gray-900">Counter Sale POS Entry</h3>
-              <p className="text-[10px] text-gray-500 mt-0.5">Record counter sale. Stock is immediately decremented and order logged as DELIVERED.</p>
-            </div>
-            
-            <form onSubmit={handleCreateManualOrder} className="space-y-4 text-xs font-semibold text-gray-750">
-              <div>
-                <label className="block text-[10px] text-gray-450 uppercase mb-1">Customer Name *</label>
-                <input
-                  type="text"
-                  value={manualName}
-                  onChange={(e) => setManualName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 p-2 text-xs focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Customer Phone</label>
-                  <input
-                    type="tel"
-                    value={manualPhone}
-                    onChange={(e) => setManualPhone(e.target.value.replace(/\D/g, ''))}
-                    className="w-full rounded-lg border border-gray-200 p-2 text-xs focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Counter Description</label>
-                  <input
-                    type="text"
-                    value={manualAddress}
-                    onChange={(e) => setManualAddress(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 p-2 text-xs focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <hr className="border-gray-100" />
-
-              <div className="grid grid-cols-3 gap-3 items-end">
-                <div className="col-span-2">
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Select Staple Variant *</label>
-                  <select
-                    value={selectedVariantId}
-                    onChange={(e) => setSelectedVariantId(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 p-2 text-xs focus:outline-none bg-white truncate"
-                  >
-                    {variants.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Qty *</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={selectedQty}
-                    onChange={(e) => setSelectedQty(e.target.value.replace(/\D/g, ''))}
-                    className="w-full rounded-lg border border-gray-200 p-2 text-xs focus:outline-none text-center bg-white"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end border-t border-gray-100 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsManualOrderOpen(false)}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || variants.length === 0}
-                  className="rounded-lg bg-primary-800 px-4 py-1.5 text-xs font-bold text-white hover:bg-primary-900 transition flex items-center gap-1 shadow-sm"
-                >
-                  {submitting && <Loader2 className="animate-spin" size={12} />}
-                  Complete POS Sale
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <AdminPOS
+          onClose={() => {
+            setIsManualOrderOpen(false);
+            loadOrdersData();
+          }}
+        />
       )}
 
     </div>

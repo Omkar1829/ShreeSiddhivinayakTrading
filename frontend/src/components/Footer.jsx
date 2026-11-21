@@ -1,16 +1,22 @@
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Phone, MessageSquare, MapPin, Calendar, FileText } from 'lucide-react';
+import { formatStoreTime } from '../utils/formatTime';
 
 export default function Footer() {
   const storeSettings = useSelector((state) => state.store.settings);
-  const phone = storeSettings?.phone_number || '+919999999999';
-  const whatsapp = storeSettings?.whatsapp_number || '+919999999999';
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const phone = storeSettings?.phone_number || '+918879279207';
+  const whatsapp = storeSettings?.whatsapp_number || '+919833607049';
   const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, '');
+
+  const openTimeFormatted = formatStoreTime(storeSettings?.opening_time || '08:00');
+  const closeTimeFormatted = formatStoreTime(storeSettings?.closing_time || '21:00');
+  const isAuthorizedScannerUser = isAuthenticated && (user?.isAdmin || user?.role === 'DELIVERY' || user?.role === 'RIDER');
 
   return (
     <footer className="bg-primary-900 text-primary-100 border-t border-primary-800">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full px-4 py-12 sm:px-6 lg:px-8 xl:px-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
           {/* About Section */}
@@ -18,7 +24,7 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <img src="/logo.png" alt="Shree Siddhivinayak Trading Logo" className="h-10 w-10 rounded-xl object-cover shadow-sm shrink-0" />
               <h4 className="font-display text-base font-bold text-white tracking-wide leading-snug">
-                SHRI SIDDHIVINAYAK TRADING
+                SHREE SIDDHIVINAYAK TRADING
               </h4>
             </div>
             <p className="text-xs text-primary-200 leading-relaxed max-w-sm">
@@ -41,7 +47,7 @@ export default function Footer() {
             <ul className="space-y-3 text-xs text-primary-200">
               <li className="flex items-center gap-2">
                 <Calendar size={15} className="text-accent-500 shrink-0" />
-                <span>Monday - Sunday: 08:00 AM - 09:00 PM</span>
+                <span>Monday - Sunday: {openTimeFormatted} - {closeTimeFormatted}</span>
               </li>
               <li className="flex items-center gap-2">
                 <MapPin size={15} className="text-accent-500 shrink-0" />
@@ -50,9 +56,9 @@ export default function Footer() {
                   Uran Naka, Panvel – 410206, Maharashtra
                 </span>
               </li>
-              {/*<li className="rounded-lg bg-emerald-950 px-3 py-1.5 inline-block text-[11px] font-bold text-emerald-400 border border-emerald-900">
-                ⚡ Free Doorstep Delivery across Panvel (MVP Scope)
-              </li>*/}
+              <li className="rounded-lg bg-emerald-950 px-3 py-1.5 inline-block text-[11px] font-bold text-emerald-400 border border-emerald-900">
+                ⚡ Free Doorstep Delivery across Panvel on orders above ₹499
+              </li>
             </ul>
           </div>
 
@@ -85,11 +91,15 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 border-t border-primary-850 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-primary-300">
-          <p>© {new Date().getFullYear()} SHRI SIDDHIVINAYAK TRADING. All rights reserved.</p>
-          <div className="flex gap-4 mt-2 sm:mt-0 font-medium">
+          <p>© {new Date().getFullYear()} SHREE SIDDHIVINAYAK TRADING. All rights reserved.</p>
+          <div className="flex items-center gap-4 mt-2 sm:mt-0 font-medium">
             <Link to="/catalog" className="hover:text-white transition">Product Catalog</Link>
-            <span className="text-primary-800">|</span>
-            <Link to="/delivery/scan" className="hover:text-white transition">Rider Scanner</Link>
+            {isAuthorizedScannerUser && (
+              <>
+                <span className="text-primary-800">|</span>
+                <Link to="/delivery/scan" className="hover:text-white transition">Rider Scanner</Link>
+              </>
+            )}
           </div>
         </div>
       </div>

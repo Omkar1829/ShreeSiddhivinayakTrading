@@ -203,7 +203,7 @@ const testNotification = async (req, res) => {
   try {
     await sendSystemNotification(
       title || 'Test Notification',
-      message || 'This is a test broadcast notification for Shri Siddhivinayak Trading admins.',
+      message || 'This is a test broadcast notification for Shree Siddhivinayak Trading admins.',
       type || 'SYSTEM'
     );
 

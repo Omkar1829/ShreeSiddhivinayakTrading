@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 // Layout Wrappers
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import MobileBottomNav from './components/MobileBottomNav';
 import AdminLayout from './components/AdminLayout';
 import ToastContainer from './components/ToastContainer';
 
@@ -26,13 +27,14 @@ const DeliveryScanner = lazy(() => import('./pages/DeliveryScanner'));
 const RiderDashboard = lazy(() => import('./pages/RiderDashboard'));
 
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const AdminProducts = lazy(() => import('./pages/AdminProducts'));
-const AdminInventory = lazy(() => import('./pages/AdminInventory'));
+const AdminCatalogHub = lazy(() => import('./pages/AdminCatalogHub'));
 const AdminOrders = lazy(() => import('./pages/AdminOrders'));
+const AdminPOS = lazy(() => import('./pages/AdminPOS'));
 const AdminCustomers = lazy(() => import('./pages/AdminCustomers'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminCategoriesBrands = lazy(() => import('./pages/AdminCategoriesBrands'));
+const AdminOffers = lazy(() => import('./pages/AdminOffers'));
 
 const PageLoader = () => (
   <div className="flex h-96 items-center justify-center">
@@ -78,13 +80,15 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/products" element={<AdminProducts />} />
-              <Route path="/admin/inventory" element={<AdminInventory />} />
+              <Route path="/admin/products" element={<AdminCatalogHub defaultTab="products" />} />
+              <Route path="/admin/catalog" element={<AdminCatalogHub defaultTab="categories" />} />
+              <Route path="/admin/inventory" element={<AdminCatalogHub defaultTab="inventory" />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/pos" element={<AdminPOS />} />
               <Route path="/admin/customers" element={<AdminCustomers />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/offers" element={<AdminOffers />} />
               <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-              <Route path="/admin/catalog" element={<AdminCategoriesBrands />} />
               
               {/* Allow admins to access the scanner directly from their session */}
               <Route path="/delivery/scan" element={<DeliveryScanner />} />
@@ -124,7 +128,7 @@ export default function App() {
     <div className="flex flex-col min-h-screen min-w-[320px] bg-gray-50 text-gray-900">
       {!isScannerPage && <Navbar />}
 
-      <main className="flex-1">
+      <main className="flex-1 pb-20 md:pb-0">
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Customer Public Routes */}
@@ -150,6 +154,7 @@ export default function App() {
       </main>
 
       {!isScannerPage && <Footer />}
+      {!isScannerPage && <MobileBottomNav />}
       <ToastContainer />
     </div>
   );

@@ -1,5 +1,8 @@
 const express = require('express');
 const yup = require('yup');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const prisma = require('../config/prisma');
 const validate = require('../middleware/validate');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
@@ -7,6 +10,24 @@ const { logAudit } = require('../utils/auditLogger');
 const { addClient, removeClient } = require('../utils/eventHub');
 
 const router = express.Router();
+
+// Multer storage for store assets (UPI QR code, logo, etc.)
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.png';
+    cb(null, `upi-qr-${Date.now()}${ext}`);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 // ----------------------------------------------------
 // Validation Schemas
@@ -67,7 +88,7 @@ router.get('/settings', async (req, res) => {
 
     // Ensure default settings are returned if DB is unseeded
     const defaultConfigs = {
-      store_name: "SHRI SIDDHIVINAYAK TRADING",
+      store_name: "SHREE SIDDHIVINAYAK TRADING",
       logo_url: "",
       banner_url: "",
       phone_number: "+919833607049",
@@ -88,10 +109,22 @@ router.get('/settings', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Fetch public store settings error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'SERVER_ERROR', message: 'Failed to retrieve store settings.' }
+    console.error('Fetch public store settings error (falling back to defaults):', error);
+    return res.json({
+      success: true,
+      settings: {
+        store_name: "SHREE SIDDHIVINAYAK TRADING",
+        logo_url: "",
+        banner_url: "",
+        phone_number: "+918879279207",
+        secondary_phone_number: "+919833607049",
+        whatsapp_number: "+919833607049",
+        address: "Shop No. 4, Opp. Krishna Tower, Uran Naka, Panvel - 410206",
+        opening_time: "08:00",
+        closing_time: "21:00",
+        store_status: "OPEN",
+        audit_logs_enabled: "false"
+      }
     });
   }
 });
@@ -150,6 +183,25 @@ router.put('/settings', authenticateToken, requireAdmin, validate(storeSettingsU
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to save store settings.' }
     });
+  }
+});
+
+/**
+ * Admin: Upload store QR code photo
+ */
+router.post('/upload-qr', authenticateToken, requireAdmin, upload.single('qrImage'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: { message: 'No QR image file was uploaded.' } });
+    }
+    const relativeUrl = `/uploads/${req.file.filename}`;
+    return res.json({
+      success: true,
+      url: relativeUrl
+    });
+  } catch (error) {
+    console.error('QR upload error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Failed to process QR image upload.' } });
   }
 });
 

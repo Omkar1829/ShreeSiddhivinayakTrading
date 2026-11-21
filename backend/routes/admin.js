@@ -48,10 +48,12 @@ const manualOrderSchema = yup.object().shape({
   recipientName: yup.string().required('Customer name is required.'),
   recipientPhone: yup.string().required('Customer phone is required.'),
   deliveryAddress: yup.string().required('Counter description or address is required.'),
+  paymentMethod: yup.string().optional().default('CASH'),
   items: yup.array().of(
     yup.object().shape({
       variantId: yup.string().uuid().required(),
-      quantity: yup.number().integer().required().min(1)
+      quantity: yup.number().integer().required().min(1),
+      customPrice: yup.number().optional().min(0)
     })
   ).required().min(1)
 });
@@ -551,7 +553,7 @@ router.patch('/orders/:id/assign-delivery', validate(deliveryAssignSchema), asyn
  * Deducts stock immediately.
  */
 router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
-  const { recipientName, recipientPhone, deliveryAddress, items } = req.body;
+  const { recipientName, recipientPhone, deliveryAddress, items, paymentMethod } = req.body;
 
   try {
     const manualOrder = await prisma.$transaction(async (tx) => {
@@ -574,14 +576,18 @@ router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
           throw new Error(`INSUFFICIENT_STOCK|${variant.product.name} has only ${variant.stock} units left.`);
         }
 
-        totalAmount += Number(variant.price) * item.quantity;
+        const itemPrice = item.customPrice !== undefined && item.customPrice !== null && !isNaN(Number(item.customPrice))
+          ? Number(item.customPrice)
+          : Number(variant.price);
+
+        totalAmount += itemPrice * item.quantity;
 
         orderItems.push({
           productId: variant.productId,
           variantId: variant.id,
           productName: variant.product.name,
           variantName: `${variant.attributeName}: ${variant.attributeValue}`,
-          price: variant.price,
+          price: itemPrice,
           quantity: item.quantity
         });
 
@@ -609,7 +615,7 @@ router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
         data: {
           orderNumber,
           status: 'DELIVERED', // Manual sale is immediately delivered
-          paymentMethod: 'COD',
+          paymentMethod: paymentMethod || 'CASH',
           totalAmount,
           deliveryCharge: 0.00,
           recipientName,
@@ -619,6 +625,9 @@ router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
           items: {
             create: orderItems
           }
+        },
+        include: {
+          items: true
         }
       });
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api, { API_BASE_URL } from '../services/api';
-import { DollarSign, ShoppingBag, Users, Layers, AlertCircle, RefreshCw, Loader2, ArrowRight } from 'lucide-react';
+import { IndianRupee, ShoppingBag, Users, Layers, AlertCircle, RefreshCw, Loader2, ArrowRight } from 'lucide-react';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-10 space-y-8">
       
       {/* Title Header */}
       <div className="flex items-center justify-between">
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
           {/* Revenue */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-              <DollarSign size={24} />
+              <IndianRupee size={24} />
             </div>
             <div>
               <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
@@ -231,17 +231,27 @@ export default function AdminDashboard() {
         <h3 className="text-base font-bold text-gray-900 mb-6">
           Weekly Sales Revenue Overview ({metrics && `${new Date(metrics.startDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})} - ${new Date(metrics.endDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}`})
         </h3>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-              <XAxis dataKey="name" stroke="#9ca3af" fontSize={11} tickLine={false} />
-              <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
-              <Tooltip formatter={(value) => [`₹${value}`, 'Sales']} contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6' }} />
-              <Line type="monotone" dataKey="sales" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {chartData.every((d) => !d.sales || d.sales === 0) ? (
+          <div className="h-44 w-full flex flex-col items-center justify-center text-center p-6 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200">
+            <div className="h-10 w-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mb-2">
+              <IndianRupee size={20} />
+            </div>
+            <span className="text-xs font-bold text-gray-700">No recorded sales for this period</span>
+            <span className="text-[11px] text-gray-400 mt-0.5">Sales revenue recorded from storefront and POS counter sales will appear here.</span>
+          </div>
+        ) : (
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis dataKey="name" stroke="#9ca3af" fontSize={11} tickLine={false} />
+                <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
+                <Tooltip formatter={(value) => [`₹${value}`, 'Sales']} contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6' }} />
+                <Line type="monotone" dataKey="sales" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* Side-by-Side Panels */}

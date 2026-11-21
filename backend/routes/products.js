@@ -60,7 +60,8 @@ const productCreateSchema = yup.object().shape({
   description: yup.string().transform((val) => (val === '' ? null : val)).nullable().optional(),
   sku: yup.string().transform((val) => (val === '' ? null : val)).nullable().optional(),
   barcode: yup.string().transform((val) => (val === '' ? null : val)).nullable().optional(),
-  status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be ACTIVE or INACTIVE.').default('ACTIVE')
+  status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be ACTIVE or INACTIVE.').default('ACTIVE'),
+  variants: yup.mixed().optional()
 });
 
 const variantSchema = yup.object().shape({
@@ -387,7 +388,10 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), vali
   const slug = slugify(name);
 
   try {
-    const oldProduct = await prisma.product.findUnique({ where: { id } });
+    const oldProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { variants: true }
+    });
     if (!oldProduct) {
       return res.status(404).json({
         success: false,
@@ -415,20 +419,110 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), vali
       imageUrl = `/uploads/${req.file.filename}`;
     }
 
-    const updatedProduct = await prisma.product.update({
-      where: { id },
-      data: {
-        name,
-        slug,
-        categoryId: categoryId || null,
-        subcategoryId: subcategoryId || null,
-        brandId: brandId || null,
-        description: description || null,
-        sku: sku || null,
-        barcode: barcode || null,
-        imageUrl,
-        status
+    let variantsList = [];
+    if (req.body.variants) {
+      try {
+        variantsList = typeof req.body.variants === 'string' ? JSON.parse(req.body.variants) : req.body.variants;
+      } catch (e) {
+        variantsList = [];
       }
+    }
+
+    const updatedProduct = await prisma.$transaction(async (tx) => {
+      // 1. Update product base record
+      await tx.product.update({
+        where: { id },
+        data: {
+          name,
+          slug,
+          categoryId: categoryId || null,
+          subcategoryId: subcategoryId || null,
+          brandId: brandId || null,
+          description: description || null,
+          sku: sku || null,
+          barcode: barcode || null,
+          imageUrl,
+          status
+        }
+      });
+
+      // 2. Sync variants if provided
+      if (Array.isArray(variantsList) && variantsList.length > 0) {
+        const validVariants = variantsList.filter(
+          (v) => v.attributeValue && !isNaN(parseFloat(v.price))
+        );
+
+        const activeVariantIds = [];
+
+        for (const v of validVariants) {
+          const priceNum = parseFloat(v.price);
+          const stockNum = !isNaN(parseInt(v.stock, 10)) ? parseInt(v.stock, 10) : 0;
+          const vStatus = v.status || 'ACTIVE';
+          const attrName = v.attributeName || 'Weight';
+          const attrVal = String(v.attributeValue).trim();
+
+          // Check if variant exists and belongs to this product
+          if (v.id && !String(v.id).startsWith('temp-') && !String(v.id).startsWith('var-')) {
+            const existingVar = await tx.variant.findFirst({
+              where: { id: v.id, productId: id }
+            });
+            if (existingVar) {
+              const updated = await tx.variant.update({
+                where: { id: v.id },
+                data: {
+                  attributeName: attrName,
+                  attributeValue: attrVal,
+                  price: priceNum,
+                  stock: stockNum,
+                  status: vStatus
+                }
+              });
+              activeVariantIds.push(updated.id);
+              continue;
+            }
+          }
+
+          // Otherwise create new variant
+          const created = await tx.variant.create({
+            data: {
+              productId: id,
+              attributeName: attrName,
+              attributeValue: attrVal,
+              price: priceNum,
+              stock: stockNum,
+              status: vStatus
+            }
+          });
+          activeVariantIds.push(created.id);
+        }
+
+        // Deactivate variants not in the form
+        if (activeVariantIds.length > 0) {
+          await tx.variant.updateMany({
+            where: {
+              productId: id,
+              id: { notIn: activeVariantIds }
+            },
+            data: {
+              status: 'INACTIVE'
+            }
+          });
+        }
+      }
+
+      // 3. Return full updated product with active variants
+      return await tx.product.findUnique({
+        where: { id },
+        include: {
+          category: { select: { name: true, slug: true } },
+          subcategory: { select: { name: true, slug: true } },
+          brand: { select: { name: true, slug: true } },
+          variants: {
+            where: { status: 'ACTIVE' },
+            orderBy: { price: 'asc' }
+          }
+        }
+      });
     });
 
     await logAudit(null, {

@@ -31,7 +31,8 @@ import {
   X,
   Store,
   Menu,
-  Bell
+  Bell,
+  Tag
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -249,9 +250,9 @@ export default function AdminLayout({ children }) {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { label: 'Orders', icon: ClipboardList, path: '/admin/orders' },
-    { label: 'Products', icon: ShoppingBag, path: '/admin/products' },
-    { label: 'Catalog Config', icon: FolderTree, path: '/admin/catalog' },
-    { label: 'Inventory', icon: Layers, path: '/admin/inventory' },
+    { label: 'POS Billing', icon: Store, path: '/admin/pos' },
+    { label: 'Catalog & Stock Hub', icon: ShoppingBag, path: '/admin/products' },
+    { label: 'Offers & Deals', icon: Tag, path: '/admin/offers' },
     { label: 'Customers', icon: Users, path: '/admin/customers' },
     ...(storeSettings?.audit_logs_enabled === 'true' ? [{ label: 'Audit Logs', icon: ShieldCheck, path: '/admin/audit-logs' }] : []),
     { label: 'Settings', icon: Settings, path: '/admin/settings' }
@@ -336,12 +337,12 @@ export default function AdminLayout({ children }) {
           <button
             onClick={() => {
               setMobileOpen(false);
-              navigate('/admin/orders', { state: { openPOS: true } });
+              navigate('/admin/pos');
             }}
             className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold text-gray-300 hover:text-white rounded-xl border border-[#202923] hover:bg-[#121614] transition text-left"
           >
             <PlusCircle size={14} className="text-primary-500" />
-            Create Manual Order
+            POS Counter Sale
           </button>
 
           <button
