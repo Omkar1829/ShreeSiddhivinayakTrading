@@ -12,8 +12,8 @@ export default function OrderTracking() {
   const navigate = useNavigate();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const storeSettings = useSelector((state) => state.store.settings);
-  const phone = storeSettings?.phone_number || '+919999999999';
-  const whatsapp = storeSettings?.whatsapp_number || '+919999999999';
+  const phone = storeSettings?.phone_number || '+918879279207';
+  const whatsapp = storeSettings?.whatsapp_number || '+919833607049';
   const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, '');
 
   const [order, setOrder] = useState(null);

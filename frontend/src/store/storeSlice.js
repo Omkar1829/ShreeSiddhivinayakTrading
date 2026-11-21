@@ -5,7 +5,7 @@ const initialState = {
     store_name: "SHREE SIDDHIVINAYAK TRADING",
     logo_url: "",
     banner_url: "",
-    phone_number: "+919999999999",
+    phone_number: "+918879279207",
     whatsapp_number: "+919833607049",
     address: "Shop No. 4, Opp. Krishna Tower, Uran Naka, Panvel - 410206",
     opening_time: "08:00",

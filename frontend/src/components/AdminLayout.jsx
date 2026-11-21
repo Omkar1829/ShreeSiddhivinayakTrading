@@ -31,7 +31,8 @@ import {
   X,
   Store,
   Menu,
-  Bell
+  Bell,
+  Tag
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -251,6 +252,7 @@ export default function AdminLayout({ children }) {
     { label: 'Orders', icon: ClipboardList, path: '/admin/orders' },
     { label: 'POS Billing', icon: Store, path: '/admin/pos' },
     { label: 'Products', icon: ShoppingBag, path: '/admin/products' },
+    { label: 'Offers & Deals', icon: Tag, path: '/admin/offers' },
     { label: 'Catalog Config', icon: FolderTree, path: '/admin/catalog' },
     { label: 'Inventory', icon: Layers, path: '/admin/inventory' },
     { label: 'Customers', icon: Users, path: '/admin/customers' },

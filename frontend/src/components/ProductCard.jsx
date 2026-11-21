@@ -8,6 +8,7 @@ import { Plus, Minus } from 'lucide-react';
 export default function ProductCard({ product }) {
   const dispatch = useDispatch();
   const cartItems = useSelector((state) => state.cart.items);
+  const storeSettings = useSelector((state) => state.store.settings);
 
   const variants = product.variants || [];
   const [selectedVariantId, setSelectedVariantId] = useState(variants[0]?.id || null);
@@ -17,7 +18,9 @@ export default function ProductCard({ product }) {
   const cartItem = currentVariant ? cartItems.find((i) => i.variantId === currentVariant.id) : null;
   const quantityInCart = cartItem ? cartItem.quantity : 0;
 
-  const pricing = currentVariant ? calculatePricing(currentVariant.price, currentVariant.mrp) : null;
+  const pricing = currentVariant
+    ? calculatePricing(currentVariant.price, currentVariant.mrp, product.id, storeSettings?.store_offers)
+    : null;
   const isOutOfStock = !currentVariant || currentVariant.stock <= 0;
 
   const handleAddToCart = (e) => {
@@ -64,7 +67,7 @@ export default function ProductCard({ product }) {
     <div className="flex flex-col bg-white border border-gray-150 rounded-2xl p-3 hover:shadow-xl hover:border-emerald-200 transition duration-250 relative group h-full">
       {/* Top badges: Discount Pill & Stock Indicator */}
       <div className="flex items-center justify-between gap-1 mb-2 z-10">
-        {pricing && pricing.discountPercent > 0 ? (
+        {pricing && pricing.hasDiscount && pricing.discountPercent > 0 ? (
           <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200 uppercase tracking-tight">
             {pricing.discountPercent}% OFF
           </span>
@@ -86,16 +89,16 @@ export default function ProductCard({ product }) {
         </span>
       </div>
 
-      {/* Image container */}
+      {/* Image container: Strict uniform height with object-contain */}
       <Link
         to={`/catalog/${product.slug}`}
-        className="block overflow-hidden rounded-xl bg-gray-50 aspect-square group-hover:opacity-95 transition relative"
+        className="block h-44 sm:h-48 w-full overflow-hidden rounded-xl bg-gray-50 flex items-center justify-center p-2 group-hover:opacity-95 transition relative border border-gray-100"
       >
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
             alt={product.name}
-            className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
+            className="h-full w-full max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300"
             loading="lazy"
           />
         ) : (
@@ -162,13 +165,13 @@ export default function ProductCard({ product }) {
                 <span className="text-base sm:text-lg font-black text-emerald-700 leading-none">
                   ₹{pricing.price.toFixed(2)}
                 </span>
-                {pricing.mrp > pricing.price && (
+                {pricing.hasDiscount && pricing.mrp > pricing.price && (
                   <span className="text-xs text-gray-400 font-semibold line-through">
                     ₹{pricing.mrp.toFixed(0)}
                   </span>
                 )}
               </div>
-              {pricing.savings > 0 && (
+              {pricing.hasDiscount && pricing.savings > 0 && (
                 <span className="text-[9px] text-emerald-600 font-bold mt-0.5">
                   Save ₹{pricing.savings.toFixed(0)}
                 </span>

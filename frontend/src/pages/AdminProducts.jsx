@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from '../utils/toast';
+import { compressImage } from '../utils/imageCompressor';
 import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, ArrowLeft, Search, Upload, Download, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export default function AdminProducts() {
@@ -544,9 +545,9 @@ export default function AdminProducts() {
                 <tr key={prod.id} className="hover:bg-gray-50/50 transition">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-gray-50 border rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                      <div className="h-10 w-10 bg-gray-50 border rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-0.5">
                         {prod.imageUrl ? (
-                          <img src={prod.imageUrl} alt={prod.name} className="h-full w-full object-cover" />
+                          <img src={prod.imageUrl} alt={prod.name} className="h-full w-full max-h-full max-w-full object-contain" />
                         ) : (
                           <span className="text-gray-400 font-bold uppercase text-[9px]">{prod.name.slice(0, 2)}</span>
                         )}
@@ -756,12 +757,22 @@ export default function AdminProducts() {
 
               <div className="grid grid-cols-2 gap-4 items-center">
                 <div>
-                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Product Image</label>
+                  <label className="block text-[10px] text-gray-450 uppercase mb-1">Product Image (Auto-Compressed)</label>
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setProdImage(e.target.files[0])}
-                    className="w-full text-xs text-gray-400 file:mr-3 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-800"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        toast.info('Compressing product image for fast loading...');
+                        const compressed = await compressImage(file);
+                        setProdImage(compressed);
+                        toast.success(`Image compressed: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`);
+                      } else {
+                        setProdImage(null);
+                      }
+                    }}
+                    className="w-full text-xs text-gray-400 file:mr-3 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-800 cursor-pointer"
                   />
                 </div>
                 <div>

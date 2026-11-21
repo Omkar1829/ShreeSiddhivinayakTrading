@@ -140,7 +140,7 @@ export const downloadInvoicePdf = (order) => {
               <strong>Shree Siddhivinayak Trading</strong><br/>
               Shop No. 4, Uran Naka, Near Krishna Tower<br/>
               Panvel, Navi Mumbai, MH - 410206<br/>
-              Phone: +91 9876543210
+              Phone: +91 88792 79207 / +91 98336 07049
             </div>
           </div>
 
@@ -197,7 +197,7 @@ export const downloadInvoicePdf = (order) => {
 
           <div class="footer">
             Thank you for shopping with Shree Siddhivinayak Trading!<br/>
-            For any queries or support, contact Yatish or Manas at +91 9876543210.
+            For any queries or support, contact Yatish or Manas at +91 88792 79207 / +91 98336 07049.
           </div>
         </div>
         <script>

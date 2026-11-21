@@ -52,7 +52,8 @@ const manualOrderSchema = yup.object().shape({
   items: yup.array().of(
     yup.object().shape({
       variantId: yup.string().uuid().required(),
-      quantity: yup.number().integer().required().min(1)
+      quantity: yup.number().integer().required().min(1),
+      customPrice: yup.number().optional().min(0)
     })
   ).required().min(1)
 });
@@ -575,14 +576,18 @@ router.post('/orders/manual', validate(manualOrderSchema), async (req, res) => {
           throw new Error(`INSUFFICIENT_STOCK|${variant.product.name} has only ${variant.stock} units left.`);
         }
 
-        totalAmount += Number(variant.price) * item.quantity;
+        const itemPrice = item.customPrice !== undefined && item.customPrice !== null && !isNaN(Number(item.customPrice))
+          ? Number(item.customPrice)
+          : Number(variant.price);
+
+        totalAmount += itemPrice * item.quantity;
 
         orderItems.push({
           productId: variant.productId,
           variantId: variant.id,
           productName: variant.product.name,
           variantName: `${variant.attributeName}: ${variant.attributeValue}`,
-          price: variant.price,
+          price: itemPrice,
           quantity: item.quantity
         });
 

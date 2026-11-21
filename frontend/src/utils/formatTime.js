@@ -18,3 +18,5 @@ export function formatStoreTime(timeStr) {
   
   return `${strHours}:${minutes} ${ampm}`;
 }
+
+export const formatTime = formatStoreTime;

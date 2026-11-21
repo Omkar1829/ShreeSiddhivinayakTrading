@@ -35,6 +35,7 @@ const AdminCustomers = lazy(() => import('./pages/AdminCustomers'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminCategoriesBrands = lazy(() => import('./pages/AdminCategoriesBrands'));
+const AdminOffers = lazy(() => import('./pages/AdminOffers'));
 
 const PageLoader = () => (
   <div className="flex h-96 items-center justify-center">
@@ -86,6 +87,7 @@ export default function App() {
               <Route path="/admin/pos" element={<AdminPOS />} />
               <Route path="/admin/customers" element={<AdminCustomers />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/offers" element={<AdminOffers />} />
               <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
               <Route path="/admin/catalog" element={<AdminCategoriesBrands />} />
               

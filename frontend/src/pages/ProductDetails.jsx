@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, updateQuantity } from '../store/cartSlice';
 import { calculatePricing } from '../utils/pricing';
 import api from '../services/api';
-import { ArrowLeft, ShoppingBag, ShieldCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, ShieldCheck, Loader2, Tag } from 'lucide-react';
 
 export default function ProductDetails() {
   const { slug } = useParams();
@@ -12,6 +12,7 @@ export default function ProductDetails() {
   const dispatch = useDispatch();
 
   const cartItems = useSelector((state) => state.cart.items);
+  const storeSettings = useSelector((state) => state.store.settings);
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +46,9 @@ export default function ProductDetails() {
   };
 
   const currentCartQty = selectedVariant ? getCartQuantity(selectedVariant.id) : 0;
-  const pricing = selectedVariant ? calculatePricing(selectedVariant.price, selectedVariant.mrp) : null;
+  const pricing = selectedVariant
+    ? calculatePricing(selectedVariant.price, selectedVariant.mrp, product?.id, storeSettings?.store_offers)
+    : null;
 
   if (loading) {
     return (
@@ -83,10 +86,10 @@ export default function ProductDetails() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 bg-white rounded-3xl border border-gray-100 p-6 md:p-10 shadow-sm">
         
-        {/* Left Side Image */}
-        <div className="rounded-2xl overflow-hidden bg-gray-50 aspect-square max-w-md mx-auto w-full border border-gray-100">
+        {/* Left Side Image: Strict fixed height boundary */}
+        <div className="rounded-2xl overflow-hidden bg-gray-50 h-80 sm:h-96 max-w-md mx-auto w-full border border-gray-100 flex items-center justify-center p-4">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+            <img src={product.imageUrl} alt={product.name} className="max-h-full max-w-full object-contain" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-gray-300 font-bold text-lg uppercase bg-gray-100">
               {product.name.slice(0, 2)}
@@ -113,6 +116,16 @@ export default function ProductDetails() {
             </p>
           </div>
 
+          {/* Promotional Offer Banner */}
+          {pricing && pricing.hasDiscount && pricing.offerTitle && (
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-2.5 text-xs text-emerald-800 font-bold shadow-xs">
+              <Tag size={16} className="text-emerald-700 shrink-0" />
+              <span>
+                🔥 <strong>Special Offer:</strong> {pricing.offerTitle} ({pricing.discountPercent}% OFF applied!)
+              </span>
+            </div>
+          )}
+
           <hr className="border-gray-100" />
 
           {/* Pricing & Stock Details */}
@@ -122,12 +135,12 @@ export default function ProductDetails() {
                 <span className="text-3xl font-black text-emerald-700">
                   ₹{pricing.price.toFixed(2)}
                 </span>
-                {pricing.mrp > pricing.price && (
+                {pricing.hasDiscount && pricing.mrp > pricing.price && (
                   <span className="text-lg text-gray-400 font-semibold line-through">
                     ₹{pricing.mrp.toFixed(0)}
                   </span>
                 )}
-                {pricing.discountPercent > 0 && (
+                {pricing.hasDiscount && pricing.discountPercent > 0 && (
                   <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-700 border border-emerald-200 uppercase">
                     {pricing.discountPercent}% OFF
                   </span>
@@ -136,7 +149,7 @@ export default function ProductDetails() {
                   {selectedVariant.stock > 0 ? `● In Stock (${selectedVariant.stock} left)` : '● Out of Stock'}
                 </span>
               </div>
-              {pricing.savings > 0 && (
+              {pricing.hasDiscount && pricing.savings > 0 && (
                 <span className="text-xs text-emerald-600 font-bold">
                   You save ₹{pricing.savings.toFixed(0)} on this pack!
                 </span>

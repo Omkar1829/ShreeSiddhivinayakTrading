@@ -3,18 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../services/api';
 import { toast } from '../utils/toast';
-import { printInvoice } from '../utils/invoice';
 import { calculatePricing } from '../utils/pricing';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   Search,
   ShoppingCart,
   Plus,
   Minus,
   Trash2,
-  Printer,
   CheckCircle,
   X,
-  CreditCard,
   QrCode,
   Banknote,
   Clock,
@@ -24,7 +22,11 @@ import {
   Layers,
   Sparkles,
   ArrowLeft,
-  RotateCcw
+  Check,
+  CheckCircle2,
+  Coins,
+  ArrowRight,
+  Edit3
 } from 'lucide-react';
 
 export default function AdminPOS({ onClose }) {
@@ -46,14 +48,24 @@ export default function AdminPOS({ onClose }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Active Billing Register Cart
-  // Item structure: { variantId, productId, name, variantName, price, mrp, quantity, stock, imageUrl }
+  // Item: { variantId, productId, name, variantName, price, originalPrice, mrp, quantity, stock, imageUrl }
   const [cart, setCart] = useState([]);
 
   // Customer Information
   const [customerName, setCustomerName] = useState('Counter Sale');
   const [customerPhone, setCustomerPhone] = useState('9999999999');
   const [counterNote, setCounterNote] = useState('Counter Store Sale');
-  const [paymentMethod, setPaymentMethod] = useState('CASH'); // CASH, UPI, CARD
+  const [paymentMethod, setPaymentMethod] = useState('CASH'); // CASH or UPI only
+
+  // Variant Selection Popup State (when clicking card with multiple variants)
+  const [variantModalProduct, setVariantModalProduct] = useState(null);
+
+  // Payment Confirmation Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [cashTendered, setCashTendered] = useState('');
+
+  // Sale Completed Animation Screen State
+  const [completedOrder, setCompletedOrder] = useState(null);
 
   // Track selected variant per product on catalog side: { [productId]: variantId }
   const [selectedVariants, setSelectedVariants] = useState({});
@@ -73,13 +85,26 @@ export default function AdminPOS({ onClose }) {
       }
       // Close on Esc
       if (e.key === 'Escape') {
-        if (onClose) onClose();
-        else navigate('/admin/orders');
+        if (isPaymentModalOpen) {
+          setIsPaymentModalOpen(false);
+        } else if (variantModalProduct) {
+          setVariantModalProduct(null);
+        } else if (completedOrder) {
+          handleNextCustomer();
+        } else if (onClose) {
+          onClose();
+        } else {
+          navigate('/admin/orders');
+        }
+      }
+      // Enter on Completed Screen triggers next customer
+      if (e.key === 'Enter' && completedOrder) {
+        handleNextCustomer();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate, onClose]);
+  }, [navigate, onClose, isPaymentModalOpen, variantModalProduct, completedOrder]);
 
   // Load catalog products & categories
   useEffect(() => {
@@ -124,11 +149,9 @@ export default function AdminPOS({ onClose }) {
   const filteredProducts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return products.filter((p) => {
-      // Category check
       if (selectedCategory !== 'ALL' && p.categoryId !== selectedCategory) {
         return false;
       }
-      // Search check
       if (!query) return true;
       const matchName = p.name?.toLowerCase().includes(query);
       const matchSku = p.sku?.toLowerCase().includes(query);
@@ -166,7 +189,12 @@ export default function AdminPOS({ onClose }) {
         return updated;
       }
 
-      const pricing = calculatePricing(variant.price, variant.mrp);
+      const pricing = calculatePricing(
+        variant.price,
+        variant.mrp,
+        product.id,
+        storeSettings?.store_offers
+      );
 
       return [
         ...prev,
@@ -175,7 +203,8 @@ export default function AdminPOS({ onClose }) {
           productId: product.id,
           name: product.name,
           variantName: `${variant.attributeName}: ${variant.attributeValue}`,
-          price: Number(variant.price),
+          price: Number(pricing.price),
+          originalPrice: Number(variant.price),
           mrp: pricing.mrp,
           quantity: 1,
           stock: variant.stock,
@@ -183,21 +212,49 @@ export default function AdminPOS({ onClose }) {
         }
       ];
     });
+
+    toast.success(`Added ${product.name} (${variant.attributeValue})`);
   };
 
+  // Card click handler: if multiple variants, open popup; if single variant, add directly
+  const handleProductCardClick = (product) => {
+    const variants = product.variants || [];
+    if (variants.length > 1) {
+      setVariantModalProduct(product);
+    } else if (variants.length === 1) {
+      handleAddToBill(product, variants[0]);
+    }
+  };
+
+  // Update item quantity (allows custom number input)
   const handleUpdateQty = (variantId, newQty) => {
-    if (newQty <= 0) {
+    const qty = parseInt(newQty, 10);
+    if (isNaN(qty) || qty <= 0) {
       handleRemoveItem(variantId);
       return;
     }
     setCart((prev) =>
       prev.map((item) => {
         if (item.variantId === variantId) {
-          if (newQty > item.stock) {
+          if (qty > item.stock) {
             toast.warning(`Only ${item.stock} units available in stock.`);
             return { ...item, quantity: item.stock };
           }
-          return { ...item, quantity: newQty };
+          return { ...item, quantity: qty };
+        }
+        return item;
+      })
+    );
+  };
+
+  // Update item price (custom price modification directly on POS line item)
+  const handleUpdatePrice = (variantId, newPrice) => {
+    const priceVal = parseFloat(newPrice);
+    if (isNaN(priceVal) || priceVal < 0) return;
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.variantId === variantId) {
+          return { ...item, price: priceVal };
         }
         return item;
       })
@@ -220,7 +277,6 @@ export default function AdminPOS({ onClose }) {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return;
 
-    // Check exact barcode or SKU match across variants/products
     let foundProduct = null;
     let foundVariant = null;
 
@@ -243,7 +299,6 @@ export default function AdminPOS({ onClose }) {
     if (foundProduct && foundVariant) {
       handleAddToBill(foundProduct, foundVariant);
       setSearchQuery('');
-      toast.success(`Added ${foundProduct.name} to bill.`);
     }
   };
 
@@ -253,36 +308,49 @@ export default function AdminPOS({ onClose }) {
   const totalMrp = useMemo(() => cart.reduce((sum, item) => sum + item.mrp * item.quantity, 0), [cart]);
   const totalSavings = Math.max(0, totalMrp - subtotal);
 
-  // Complete Order
-  const handleCompleteSale = async (shouldPrint = false) => {
+  // Cash change calculations
+  const cashNum = parseFloat(cashTendered) || 0;
+  const changeToReturn = Math.max(0, cashNum - subtotal);
+
+  // Dynamic UPI URL for QR code
+  const upiId = storeSettings?.upi_id || '9833607049@upi';
+  const upiString = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(
+    'Shree Siddhivinayak Trading'
+  )}&am=${subtotal.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Store POS Bill')}`;
+
+  // Step 1: Open Payment Modal when clicking Complete Sale
+  const handleInitiateCompleteSale = () => {
     if (cart.length === 0) {
       toast.warning('Cannot complete an empty bill. Add products first.');
       return;
     }
-
     if (!customerPhone || customerPhone.length < 7) {
       toast.warning('Please provide a valid customer phone number.');
       return;
     }
+    setCashTendered(subtotal.toString());
+    setIsPaymentModalOpen(true);
+  };
 
+  // Step 2: Finalize transaction when Cash or UPI Collected button is clicked
+  const handlePaymentCollected = async () => {
     setSubmitting(true);
     try {
       const payload = {
         recipientName: customerName.trim() || 'Counter Sale',
         recipientPhone: customerPhone.trim() || '9999999999',
         deliveryAddress: counterNote.trim() || 'Counter Store Sale',
-        paymentMethod,
+        paymentMethod: paymentMethod === 'UPI' ? 'QR_PAYMENT' : 'CASH',
         items: cart.map((item) => ({
           variantId: item.variantId,
-          quantity: item.quantity
+          quantity: item.quantity,
+          customPrice: item.price
         }))
       };
 
       const res = await api.post('/api/admin/orders/manual', payload);
 
       if (res.data.success) {
-        toast.success(`POS Sale Completed! Order #${res.data.order?.orderNumber || 'Success'}`);
-
         // Update local stock in products
         setProducts((prev) =>
           prev.map((p) => ({
@@ -297,15 +365,21 @@ export default function AdminPOS({ onClose }) {
           }))
         );
 
-        if (shouldPrint && res.data.order) {
-          printInvoice(res.data.order);
-        }
+        // Close payment modal and show celebration animation
+        setIsPaymentModalOpen(false);
+        setCompletedOrder({
+          orderNumber: res.data.order?.orderNumber || 'SALE-OK',
+          amount: subtotal,
+          itemsCount: totalItemsCount,
+          method: paymentMethod
+        });
 
-        // Reset Bill
-        setCart([]);
-        setCustomerName('Counter Sale');
-        setCustomerPhone('9999999999');
-        setPaymentMethod('CASH');
+        // Play gentle audio chime
+        try {
+          const audio = new Audio('/notification.mp3');
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        } catch (e) {}
       }
     } catch (err) {
       console.error('POS Checkout Error:', err);
@@ -313,6 +387,17 @@ export default function AdminPOS({ onClose }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Step 3: Reset POS register for next customer
+  const handleNextCustomer = () => {
+    setCompletedOrder(null);
+    setCart([]);
+    setCustomerName('Counter Sale');
+    setCustomerPhone('9999999999');
+    setPaymentMethod('CASH');
+    setCashTendered('');
+    searchInputRef.current?.focus();
   };
 
   const handleClose = () => {
@@ -392,7 +477,7 @@ export default function AdminPOS({ onClose }) {
                 placeholder="Search staple name, SKU, or scan barcode (Press '/' or F2)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-24 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-800 focus:bg-white transition"
+                className="w-full pl-10 pr-24 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:bg-white transition"
               />
               {searchQuery && (
                 <button
@@ -420,7 +505,7 @@ export default function AdminPOS({ onClose }) {
               onClick={() => setSelectedCategory('ALL')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
                 selectedCategory === 'ALL'
-                  ? 'bg-primary-900 text-white border-primary-900 shadow-xs'
+                  ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
                   : 'bg-gray-100 text-gray-650 border-gray-200 hover:bg-gray-200'
               }`}
             >
@@ -433,7 +518,7 @@ export default function AdminPOS({ onClose }) {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
                   selectedCategory === cat.id
-                    ? 'bg-primary-900 text-white border-primary-900 shadow-xs'
+                    ? 'bg-emerald-800 text-white border-emerald-800 shadow-xs'
                     : 'bg-gray-100 text-gray-650 border-gray-200 hover:bg-gray-200'
                 }`}
               >
@@ -442,12 +527,12 @@ export default function AdminPOS({ onClose }) {
             ))}
           </div>
 
-          {/* Product Cards Grid */}
+          {/* Product Cards Grid: Clicking anywhere on card adds to cart or opens variant picker */}
           <div className="flex-1 overflow-y-auto p-4">
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-64 rounded-2xl bg-white animate-pulse border border-gray-200"></div>
+                  <div key={i} className="h-60 rounded-2xl bg-white animate-pulse border border-gray-200"></div>
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
@@ -462,27 +547,31 @@ export default function AdminPOS({ onClose }) {
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5">
                 {filteredProducts.map((product) => {
                   const variants = product.variants || [];
-                  const selectedVarId = selectedVariants[product.id] || variants[0]?.id;
-                  const currentVariant = variants.find((v) => v.id === selectedVarId) || variants[0];
-                  const pricing = currentVariant ? calculatePricing(currentVariant.price, currentVariant.mrp) : null;
-                  const isOutOfStock = !currentVariant || currentVariant.stock <= 0;
+                  const defaultVar = variants[0];
+                  const isOutOfStock = !defaultVar || variants.every((v) => v.stock <= 0);
+                  const pricing = defaultVar
+                    ? calculatePricing(defaultVar.price, defaultVar.mrp, product.id, storeSettings?.store_offers)
+                    : null;
 
                   return (
                     <div
                       key={product.id}
-                      className="flex flex-col bg-white border border-gray-200 rounded-2xl p-3 shadow-xs hover:border-emerald-300 hover:shadow-md transition group"
+                      onClick={() => !isOutOfStock && handleProductCardClick(product)}
+                      className={`flex flex-col bg-white border border-gray-200 rounded-2xl p-3 shadow-xs transition duration-200 group cursor-pointer hover:border-emerald-500 hover:shadow-md ${
+                        isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'active:scale-98'
+                      }`}
                     >
-                      {/* Image & Stock */}
-                      <div className="relative aspect-4/3 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 mb-2">
+                      {/* Fixed Height Image Container with object-contain */}
+                      <div className="relative h-36 w-full bg-gray-50 rounded-xl overflow-hidden border border-gray-100 mb-2 flex items-center justify-center p-2">
                         {product.imageUrl ? (
                           <img
                             src={product.imageUrl}
                             alt={product.name}
-                            className="h-full w-full object-cover group-hover:scale-103 transition duration-300"
+                            className="h-full w-full max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center font-bold text-gray-300 text-xs">
+                          <div className="h-full w-full flex items-center justify-center font-black text-gray-300 text-xs">
                             {product.name.slice(0, 2)}
                           </div>
                         )}
@@ -491,7 +580,7 @@ export default function AdminPOS({ onClose }) {
                             isOutOfStock ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white'
                           }`}
                         >
-                          {isOutOfStock ? '0 Left' : `${currentVariant?.stock} Left`}
+                          {isOutOfStock ? '0 Left' : `${variants.reduce((acc, v) => acc + v.stock, 0)} Left`}
                         </span>
                       </div>
 
@@ -503,65 +592,35 @@ export default function AdminPOS({ onClose }) {
                         {product.name}
                       </h4>
 
-                      {/* Variant Pack Selector Chips */}
-                      {variants.length > 1 ? (
-                        <div className="flex flex-wrap gap-1 my-2">
-                          {variants.map((v) => {
-                            const isSelected = v.id === currentVariant?.id;
-                            return (
-                              <button
-                                key={v.id}
-                                type="button"
-                                onClick={() =>
-                                  setSelectedVariants((prev) => ({
-                                    ...prev,
-                                    [product.id]: v.id
-                                  }))
-                                }
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition ${
-                                  isSelected
-                                    ? 'bg-primary-900 text-white border-primary-900'
-                                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                                }`}
-                              >
-                                {v.attributeValue}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="my-1.5 text-[11px] text-gray-500 font-semibold">
-                          {currentVariant?.attributeValue || 'Standard Pack'}
-                        </div>
-                      )}
+                      {/* Variant tags or single pack notice */}
+                      <div className="my-1.5 flex items-center gap-1 flex-wrap">
+                        {variants.length > 1 ? (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-50 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 border border-emerald-200">
+                            {variants.length} Pack Sizes Available
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-gray-500 font-semibold">
+                            {defaultVar?.attributeValue || 'Standard Pack'}
+                          </span>
+                        )}
+                      </div>
 
-                      {/* Price & Add Button */}
+                      {/* Price & Click to Add Prompt */}
                       <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between gap-1">
                         <div>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-sm sm:text-base font-black text-emerald-700 leading-none">
-                              ₹{pricing ? pricing.price.toFixed(2) : '0.00'}
+                          <span className="text-sm sm:text-base font-black text-emerald-700 leading-none">
+                            ₹{pricing ? pricing.price.toFixed(2) : '0.00'}
+                          </span>
+                          {pricing && pricing.hasDiscount && pricing.mrp > pricing.price && (
+                            <span className="text-[10px] text-gray-400 line-through ml-1">
+                              ₹{pricing.mrp.toFixed(0)}
                             </span>
-                            {pricing && pricing.mrp > pricing.price && (
-                              <span className="text-[10px] text-gray-400 line-through">
-                                ₹{pricing.mrp.toFixed(0)}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
 
-                        <button
-                          type="button"
-                          disabled={isOutOfStock}
-                          onClick={() => handleAddToBill(product, currentVariant)}
-                          className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition shadow-xs ${
-                            isOutOfStock
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                              : 'bg-primary-800 text-white hover:bg-primary-900 active:scale-95'
-                          }`}
-                        >
-                          <Plus size={13} className="stroke-[3]" /> Add
-                        </button>
+                        <span className="text-[11px] font-black text-emerald-700 group-hover:underline flex items-center gap-0.5">
+                          + Add
+                        </span>
                       </div>
                     </div>
                   );
@@ -576,7 +635,7 @@ export default function AdminPOS({ onClose }) {
           {/* Register Top Bar */}
           <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShoppingCart size={18} className="text-primary-800" />
+              <ShoppingCart size={18} className="text-emerald-800" />
               <h3 className="font-black text-sm text-gray-900 tracking-tight">Active Billing Register</h3>
               <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 border border-emerald-200">
                 {totalItemsCount} items
@@ -607,7 +666,7 @@ export default function AdminPOS({ onClose }) {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Counter Sale"
-                  className="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg font-semibold text-gray-800 focus:outline-none focus:border-primary-800"
+                  className="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg font-semibold text-gray-800 focus:outline-none focus:border-emerald-700"
                 />
               </div>
             </div>
@@ -623,13 +682,13 @@ export default function AdminPOS({ onClose }) {
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ''))}
                   placeholder="9999999999"
-                  className="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg font-semibold text-gray-800 focus:outline-none focus:border-primary-800"
+                  className="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg font-semibold text-gray-800 focus:outline-none focus:border-emerald-700"
                 />
               </div>
             </div>
           </div>
 
-          {/* Itemized Bill Table */}
+          {/* Itemized Bill Table: Custom Quantity Input & Editable Price */}
           <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-2">
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400">
@@ -638,17 +697,17 @@ export default function AdminPOS({ onClose }) {
                 </div>
                 <h4 className="text-sm font-bold text-gray-800">Your billing cart is empty</h4>
                 <p className="text-xs text-gray-500 mt-1 max-w-xs">
-                  Tap '+ Add' on any product from the catalog pane or scan barcode to add to bill.
+                  Tap any product from the catalog pane or scan barcode to add to bill.
                 </p>
               </div>
             ) : (
               cart.map((item) => {
                 const lineTotal = item.price * item.quantity;
                 return (
-                  <div key={item.variantId} className="flex items-center gap-3 p-2.5 hover:bg-gray-50/70 rounded-xl transition">
-                    <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center">
+                  <div key={item.variantId} className="flex items-center gap-2.5 p-2 hover:bg-gray-50/70 rounded-xl transition">
+                    <div className="h-9 w-9 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center p-0.5">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                        <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" />
                       ) : (
                         <span className="font-bold text-[10px] text-gray-400">{item.name.slice(0, 2)}</span>
                       )}
@@ -656,29 +715,48 @@ export default function AdminPOS({ onClose }) {
 
                     <div className="flex-1 min-w-0">
                       <h5 className="font-bold text-xs text-gray-900 truncate">{item.name}</h5>
-                      <span className="text-[10px] font-semibold text-gray-500 block">
-                        {item.variantName} • ₹{item.price.toFixed(2)}
+                      <span className="text-[10px] font-semibold text-gray-500 block truncate">
+                        {item.variantName}
                       </span>
                     </div>
 
-                    {/* Quantity Stepper */}
+                    {/* Editable Price Input */}
+                    <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-0.5">
+                      <span className="text-[11px] font-bold text-gray-500">₹</span>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={item.price}
+                        onChange={(e) => handleUpdatePrice(item.variantId, e.target.value)}
+                        className="w-14 text-xs font-black text-emerald-800 bg-transparent text-right focus:outline-none"
+                        title="Edit line item unit price"
+                      />
+                    </div>
+
+                    {/* Quantity Stepper & Custom Number Input */}
                     <div className="flex items-center border border-gray-250 rounded-lg overflow-hidden bg-white shadow-xs shrink-0">
                       <button
                         type="button"
                         onClick={() => handleUpdateQty(item.variantId, item.quantity - 1)}
                         className="p-1 text-gray-600 hover:bg-gray-100 hover:text-red-600 transition"
                       >
-                        <Minus size={12} className="stroke-[3]" />
+                        <Minus size={11} className="stroke-[3]" />
                       </button>
-                      <span className="px-2 text-xs font-black text-gray-900 select-none">
-                        {item.quantity}
-                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={item.stock}
+                        value={item.quantity}
+                        onChange={(e) => handleUpdateQty(item.variantId, e.target.value)}
+                        className="w-10 text-center text-xs font-black text-gray-900 focus:outline-none"
+                      />
                       <button
                         type="button"
                         onClick={() => handleUpdateQty(item.variantId, item.quantity + 1)}
                         className="p-1 text-gray-600 hover:bg-gray-100 hover:text-emerald-700 transition"
                       >
-                        <Plus size={12} className="stroke-[3]" />
+                        <Plus size={11} className="stroke-[3]" />
                       </button>
                     </div>
 
@@ -689,7 +767,7 @@ export default function AdminPOS({ onClose }) {
                       </span>
                     </div>
 
-                    {/* Delete item */}
+                    {/* Remove button */}
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(item.variantId)}
@@ -704,51 +782,40 @@ export default function AdminPOS({ onClose }) {
             )}
           </div>
 
-          {/* Payment Method Selector */}
+          {/* Payment Method Selector (CASH or UPI only - Card removed) */}
           <div className="p-3.5 bg-gray-50 border-t border-gray-200">
             <label className="block text-[10px] font-black uppercase text-gray-500 tracking-wider mb-2">
               Payment Method
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setPaymentMethod('CASH')}
-                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold border transition ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
                   paymentMethod === 'CASH'
                     ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
                     : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
                 }`}
               >
-                <Banknote size={15} /> Cash
+                <Banknote size={16} /> Cash
               </button>
               <button
                 type="button"
                 onClick={() => setPaymentMethod('UPI')}
-                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold border transition ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
                   paymentMethod === 'UPI'
                     ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
                     : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
                 }`}
               >
-                <QrCode size={15} /> UPI / QR
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('CARD')}
-                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold border transition ${
-                  paymentMethod === 'CARD'
-                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <CreditCard size={15} /> Card
+                <QrCode size={16} /> UPI / QR
               </button>
             </div>
           </div>
 
-          {/* Summary & Checkout Actions */}
+          {/* Summary & Single Primary "Complete Sale" Button */}
           <div className="p-4 bg-white border-t border-gray-200 space-y-3">
-            <div className="space-y-1.5 text-xs font-semibold text-gray-600">
+            <div className="space-y-1 text-xs font-semibold text-gray-600">
               <div className="flex justify-between">
                 <span>Items Subtotal ({totalItemsCount} units)</span>
                 <span className="font-bold text-gray-900">₹{subtotal.toFixed(2)}</span>
@@ -765,29 +832,299 @@ export default function AdminPOS({ onClose }) {
               </div>
             </div>
 
-            {/* Complete Sale Action Buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                disabled={submitting || cart.length === 0}
-                onClick={() => handleCompleteSale(false)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-gray-900 hover:bg-black text-white py-3 px-3 text-xs font-bold transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <CheckCircle size={15} /> Complete Sale
-              </button>
-
-              <button
-                type="button"
-                disabled={submitting || cart.length === 0}
-                onClick={() => handleCompleteSale(true)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-3 text-xs font-bold transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Printer size={15} /> Complete & Print
-              </button>
-            </div>
+            {/* Single Unified Primary Complete Sale Button */}
+            <button
+              type="button"
+              disabled={submitting || cart.length === 0}
+              onClick={handleInitiateCompleteSale}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white py-3.5 px-4 text-sm font-black transition shadow-md active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <CheckCircle size={18} />
+              Complete Sale (₹{subtotal.toFixed(2)})
+            </button>
           </div>
         </div>
       </div>
+
+      {/* POPUP 1: VARIANT PICKER MODAL (When clicking a product card with multiple pack variants) */}
+      {variantModalProduct && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-gray-150">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center p-1 shrink-0">
+                  {variantModalProduct.imageUrl ? (
+                    <img
+                      src={variantModalProduct.imageUrl}
+                      alt={variantModalProduct.name}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="font-bold text-gray-400">{variantModalProduct.name.slice(0, 2)}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-accent-700 uppercase tracking-wider block">
+                    {variantModalProduct.brand?.name || 'Local Fresh'}
+                  </span>
+                  <h3 className="font-black text-sm text-gray-900">{variantModalProduct.name}</h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVariantModalProduct(null)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 my-3 font-semibold">
+              Select pack weight to add to billing register:
+            </p>
+
+            <div className="space-y-2">
+              {variantModalProduct.variants?.map((v) => {
+                const isOutOfStock = v.stock <= 0;
+                const pricing = calculatePricing(
+                  v.price,
+                  v.mrp,
+                  variantModalProduct.id,
+                  storeSettings?.store_offers
+                );
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    disabled={isOutOfStock}
+                    onClick={() => {
+                      handleAddToBill(variantModalProduct, v);
+                      setVariantModalProduct(null);
+                    }}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition ${
+                      isOutOfStock
+                        ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'
+                        : 'bg-white hover:bg-emerald-50 hover:border-emerald-300 text-gray-900 border-gray-200 active:scale-98'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-black text-xs block text-gray-900">
+                        {v.attributeName}: {v.attributeValue}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-semibold">
+                        Stock: {v.stock} units available
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="font-black text-sm text-emerald-700 block">
+                        ₹{pricing.price.toFixed(2)}
+                      </span>
+                      {pricing.hasDiscount && pricing.mrp > pricing.price && (
+                        <span className="text-[10px] text-gray-400 line-through">
+                          ₹{pricing.mrp.toFixed(0)}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP 2: PAYMENT COLLECTION MODAL (Cash Tender or UPI QR Code) */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="p-5 bg-emerald-800 text-white flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200 block">
+                  Payment Collection
+                </span>
+                <h3 className="font-black text-lg text-white">
+                  {paymentMethod === 'CASH' ? 'Cash Payment Collection' : 'UPI / QR Payment Collection'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPaymentModalOpen(false)}
+                className="text-emerald-200 hover:text-white p-1 rounded-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Grand Total Callout */}
+              <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
+                <div>
+                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide block">
+                    Amount to Collect
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    Customer: <strong>{customerName}</strong> ({customerPhone})
+                  </span>
+                </div>
+                <span className="text-3xl font-black text-emerald-800">
+                  ₹{subtotal.toFixed(2)}
+                </span>
+              </div>
+
+              {/* PAYMENT OPTION A: CASH COLLECTED FLOW */}
+              {paymentMethod === 'CASH' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1.5">
+                      Cash Received from Customer (₹)
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      min={subtotal}
+                      value={cashTendered}
+                      onChange={(e) => setCashTendered(e.target.value)}
+                      placeholder={subtotal.toString()}
+                      className="w-full px-4 py-3 text-lg font-black bg-gray-50 border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:border-emerald-700 focus:bg-white"
+                    />
+                  </div>
+
+                  {/* Quick Cash Chips */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[subtotal, 100, 200, 500, 1000, 2000].map((val) => {
+                      if (val < subtotal && val !== subtotal) return null;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setCashTendered(val.toString())}
+                          className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-black text-gray-800 transition border border-gray-200"
+                        >
+                          ₹{val}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Change to Return */}
+                  {changeToReturn > 0 && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs font-bold text-amber-900">
+                      <span>Change to return to customer:</span>
+                      <span className="text-base font-black text-amber-800">
+                        ₹{changeToReturn.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Action: Cash Collected Button */}
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={handlePaymentCollected}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white py-4 px-4 text-sm font-black transition shadow-lg active:scale-98 disabled:opacity-50"
+                  >
+                    <Banknote size={20} />
+                    {submitting ? 'Recording Sale...' : `Cash Collected (₹${subtotal.toFixed(2)})`}
+                  </button>
+                </div>
+              )}
+
+              {/* PAYMENT OPTION B: UPI / QR PAYMENT FLOW */}
+              {paymentMethod === 'UPI' && (
+                <div className="space-y-4 text-center">
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col items-center">
+                    {/* Display Store's Uploaded QR photo or Dynamic QR Code */}
+                    {storeSettings?.upi_qr_url ? (
+                      <div className="h-56 w-56 bg-white p-2 rounded-xl shadow-xs border border-gray-200 flex items-center justify-center mb-2">
+                        <img
+                          src={storeSettings.upi_qr_url}
+                          alt="Store UPI QR Standee"
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-white rounded-xl shadow-xs border border-gray-200 mb-2">
+                        <QRCodeSVG value={upiString} size={180} level="M" />
+                      </div>
+                    )}
+
+                    <span className="text-xs font-bold text-gray-700 block mt-1">
+                      UPI ID: <strong className="text-emerald-700 font-mono">{upiId}</strong>
+                    </span>
+                    <span className="text-[11px] text-gray-500 mt-0.5">
+                      Customer can scan using Google Pay, PhonePe, Paytm, or BHIM
+                    </span>
+                  </div>
+
+                  {/* Action: UPI Payment Collected Button */}
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={handlePaymentCollected}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white py-4 px-4 text-sm font-black transition shadow-lg active:scale-98 disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={20} />
+                    {submitting ? 'Recording Sale...' : 'Payment Collected / UPI Received'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP 3: SALE COMPLETED ANIMATION SCREEN */}
+      {completedOrder && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center flex flex-col items-center animate-in zoom-in-95 duration-250">
+            {/* Animated Checkmark Circle */}
+            <div className="h-20 w-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4 ring-8 ring-emerald-50 animate-bounce">
+              <Check className="stroke-[3.5]" size={40} />
+            </div>
+
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 mb-2">
+              <Sparkles size={12} /> Counter Sale Successful
+            </span>
+
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+              Payment Collected!
+            </h2>
+
+            <p className="text-xs text-gray-500 mt-1 mb-4">
+              Order #{completedOrder.orderNumber} • Paid via {completedOrder.method}
+            </p>
+
+            {/* Receipt Summary Card */}
+            <div className="w-full bg-gray-50 rounded-2xl p-4 border border-gray-200 mb-6 space-y-1.5 text-xs">
+              <div className="flex justify-between text-gray-600">
+                <span>Items Sold:</span>
+                <strong className="text-gray-900">{completedOrder.itemsCount} units</strong>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Payment Mode:</span>
+                <strong className="text-gray-900">{completedOrder.method}</strong>
+              </div>
+              <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
+                <span className="font-bold text-gray-700">Total Collected:</span>
+                <span className="text-xl font-black text-emerald-700">
+                  ₹{completedOrder.amount.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Next Customer Button */}
+            <button
+              type="button"
+              onClick={handleNextCustomer}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gray-900 hover:bg-black text-white py-3.5 px-4 text-xs font-black transition shadow-md active:scale-98"
+            >
+              Next Customer (Press Enter) <ArrowRight size={15} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
