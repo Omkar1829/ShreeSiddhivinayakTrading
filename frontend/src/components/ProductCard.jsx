@@ -72,16 +72,26 @@ export default function ProductCard({ product }) {
 
   return (
     <div className="flex flex-col bg-white border border-gray-150 rounded-2xl p-3 hover:shadow-xl hover:border-emerald-200 transition duration-250 relative group h-full">
-      {/* Top badges: Discount Pill & Stock Indicator */}
-      <div className="flex items-center justify-between gap-1 mb-2 z-10">
-        {pricing && pricing.hasDiscount && pricing.discountPercent > 0 ? (
-          <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200 uppercase tracking-tight">
-            {pricing.discountPercent}% OFF
+      {/* Hanging Bookmark Ribbon Offer Badge (Zepto style with inverted triangle cutout) */}
+      {pricing && pricing.hasDiscount && pricing.discountPercent > 0 && (
+        <div
+          className="absolute top-0 left-3 z-20 flex flex-col items-center justify-center bg-blue-600 text-white font-black text-center shadow-md pt-1 pb-2.5 px-1.5 min-w-[34px] pointer-events-none rounded-t-xs"
+          style={{
+            clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%)'
+          }}
+          title={`${pricing.discountPercent}% OFF`}
+        >
+          <span className="text-[10px] sm:text-[11px] font-black leading-none tracking-tight">
+            {pricing.discountPercent}%
           </span>
-        ) : (
-          <span></span>
-        )}
+          <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-wider text-blue-100 leading-tight mt-0.5">
+            OFF
+          </span>
+        </div>
+      )}
 
+      {/* Top Bar: Stock Indicator on Right */}
+      <div className="flex items-center justify-end gap-1 mb-2 z-10 pl-11 min-h-[18px]">
         <span
           className={`inline-flex items-center gap-1 text-[10px] font-bold ${
             isOutOfStock ? 'text-red-500' : 'text-emerald-600'
