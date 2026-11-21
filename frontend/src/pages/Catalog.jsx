@@ -283,9 +283,6 @@ export default function Catalog() {
               <span className="block text-xs font-black text-gray-900 leading-tight">
                 Deals & Offers Only
               </span>
-              <span className="block text-[10px] text-amber-800 font-medium">
-                Zepto-style discounted items
-              </span>
             </div>
           </div>
           <input
@@ -324,11 +321,10 @@ export default function Catalog() {
                 key={p.id}
                 type="button"
                 onClick={() => handlePricePreset(p)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${
-                  isSelected
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${isSelected
                     ? 'bg-emerald-50 text-emerald-900 border-emerald-300 shadow-xs'
                     : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <span className="flex items-center gap-1.5">
                   {p.badge && <span>{p.badge}</span>}
@@ -376,11 +372,10 @@ export default function Catalog() {
           <button
             type="button"
             onClick={() => updateSearchParam({ category: '', subcategory: '' })}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${
-              !filters.category
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${!filters.category
                 ? 'bg-emerald-50 text-emerald-900 border-emerald-300 shadow-xs'
                 : 'bg-white text-gray-700 border-transparent hover:bg-gray-50'
-            }`}
+              }`}
           >
             <span>All Categories</span>
             {!filters.category && <Check size={14} className="text-emerald-700" />}
@@ -398,11 +393,10 @@ export default function Catalog() {
                       subcategory: ''
                     })
                   }
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${
-                    isSelected
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${isSelected
                       ? 'bg-emerald-50 text-emerald-900 border-emerald-300 shadow-xs'
                       : 'bg-white text-gray-700 border-transparent hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <span className="truncate">{c.name}</span>
                   {isSelected && <Check size={14} className="text-emerald-700 shrink-0" />}
@@ -420,11 +414,10 @@ export default function Catalog() {
                           onClick={() =>
                             updateSearchParam('subcategory', isSubSelected ? '' : sub.slug)
                           }
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition text-left ${
-                            isSubSelected
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition text-left ${isSubSelected
                               ? 'bg-emerald-100 text-emerald-900 font-bold'
                               : 'text-gray-600 hover:bg-gray-100'
-                          }`}
+                            }`}
                         >
                           <span className="truncate">↳ {sub.name}</span>
                           {isSubSelected && <Check size={12} className="text-emerald-800" />}
@@ -450,11 +443,10 @@ export default function Catalog() {
             <button
               type="button"
               onClick={() => updateSearchParam('brand', '')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${
-                !filters.brand
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${!filters.brand
                   ? 'bg-emerald-50 text-emerald-900 border-emerald-300 shadow-xs'
                   : 'bg-white text-gray-700 border-transparent hover:bg-gray-50'
-              }`}
+                }`}
             >
               <span>All Brands</span>
               {!filters.brand && <Check size={14} className="text-emerald-700" />}
@@ -467,11 +459,10 @@ export default function Catalog() {
                   key={b.id}
                   type="button"
                   onClick={() => updateSearchParam('brand', isSelected ? '' : b.slug)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${
-                    isSelected
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left border ${isSelected
                       ? 'bg-emerald-50 text-emerald-900 border-emerald-300 shadow-xs'
                       : 'bg-white text-gray-700 border-transparent hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <span className="truncate">{b.name}</span>
                   {isSelected && <Check size={14} className="text-emerald-700 shrink-0" />}
