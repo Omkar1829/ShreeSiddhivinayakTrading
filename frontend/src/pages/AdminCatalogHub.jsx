@@ -248,12 +248,14 @@ export default function AdminCatalogHub({ defaultTab = 'products' }) {
     // Populate variants with stored offer/MRP details
     const existingVariants = (product.variants || []).map((v) => {
       const offerData = variantOffersMap[v.id] || {};
+      const sellingPrice = offerData.price !== undefined ? offerData.price : v.price;
+      const mrpPrice = offerData.mrp !== undefined ? offerData.mrp : (v.mrp || sellingPrice);
       return {
         id: v.id,
         attributeName: v.attributeName || 'Weight',
         attributeValue: v.attributeValue || '',
-        price: v.price?.toString() || '0',
-        mrp: offerData.mrp?.toString() || v.mrp?.toString() || v.price?.toString() || '',
+        price: sellingPrice?.toString() || '0',
+        mrp: mrpPrice?.toString() || '',
         stock: v.stock?.toString() || '0',
         status: v.status || 'ACTIVE',
         offerBadge: offerData.offerBadge || ''
@@ -348,7 +350,7 @@ export default function AdminCatalogHub({ defaultTab = 'products' }) {
         'variants',
         JSON.stringify(
           formVariants.map((v) => ({
-            id: v.id.startsWith('temp-') ? undefined : v.id,
+            id: v.id && !v.id.toString().startsWith('temp-') && !v.id.toString().startsWith('var-') ? v.id : undefined,
             attributeName: v.attributeName || 'Weight',
             attributeValue: v.attributeValue.trim(),
             price: parseFloat(v.price),
@@ -371,7 +373,7 @@ export default function AdminCatalogHub({ defaultTab = 'products' }) {
       }
 
       // Update variant offers map in store settings
-      if (savedProduct && savedProduct.variants) {
+      if (savedProduct) {
         const newOffersMap = { ...variantOffersMap };
 
         // Save product offer badge
@@ -381,27 +383,30 @@ export default function AdminCatalogHub({ defaultTab = 'products' }) {
           delete newOffersMap[savedProduct.id];
         }
 
-        // Map saved variants with the form values (matching by attributeValue)
-        savedProduct.variants.forEach((v) => {
-          const formMatch = formVariants.find(
-            (fv) => fv.attributeValue.trim() === v.attributeValue?.trim() || fv.id === v.id
-          );
-          if (formMatch) {
-            const priceNum = parseFloat(formMatch.price);
-            const mrpNum = parseFloat(formMatch.mrp);
+        const returnedVariants = savedProduct.variants || [];
 
+        // Map form variants to save offer details
+        formVariants.forEach((fv) => {
+          const matchingSaved = returnedVariants.find(
+            (rv) => rv.id === fv.id || rv.attributeValue?.trim().toUpperCase() === fv.attributeValue.trim().toUpperCase()
+          );
+          const targetId = matchingSaved ? matchingSaved.id : fv.id;
+          const priceNum = parseFloat(fv.price);
+          const mrpNum = parseFloat(fv.mrp);
+
+          if (targetId && !targetId.toString().startsWith('temp-') && !targetId.toString().startsWith('var-')) {
             if (mrpNum > priceNum) {
               const savings = mrpNum - priceNum;
               const discountPercent = Math.round((savings / mrpNum) * 100);
-              newOffersMap[v.id] = {
+              newOffersMap[targetId] = {
                 productId: savedProduct.id,
                 price: priceNum,
                 mrp: mrpNum,
                 discountPercent,
-                offerBadge: formMatch.offerBadge?.trim() || `${discountPercent}% OFF`
+                offerBadge: fv.offerBadge?.trim() || `${discountPercent}% OFF`
               };
             } else {
-              delete newOffersMap[v.id];
+              delete newOffersMap[targetId];
             }
           }
         });

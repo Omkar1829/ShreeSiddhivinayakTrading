@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, updateQuantity } from '../store/cartSlice';
@@ -11,9 +11,33 @@ export default function ProductCard({ product }) {
   const storeSettings = useSelector((state) => state.store.settings);
 
   const variants = product.variants || [];
-  const [selectedVariantId, setSelectedVariantId] = useState(variants[0]?.id || null);
 
-  const currentVariant = variants.find((v) => v.id === selectedVariantId) || variants[0];
+  // Automatically select the variant that has an active discount/offer, otherwise first variant
+  const initialVariant = useMemo(() => {
+    if (!variants.length) return null;
+    const discounted = variants.find((v) => {
+      const p = calculatePricing(
+        v.price,
+        v.mrp,
+        product.id,
+        storeSettings?.store_offers,
+        v.id,
+        storeSettings?.store_variant_offers
+      );
+      return p.hasDiscount && p.discountPercent > 0;
+    });
+    return discounted || variants[0];
+  }, [variants, product.id, storeSettings]);
+
+  const [selectedVariantId, setSelectedVariantId] = useState(initialVariant?.id || null);
+
+  useEffect(() => {
+    if (initialVariant?.id && (!selectedVariantId || !variants.some((v) => v.id === selectedVariantId))) {
+      setSelectedVariantId(initialVariant.id);
+    }
+  }, [initialVariant, variants, selectedVariantId]);
+
+  const currentVariant = variants.find((v) => v.id === selectedVariantId) || initialVariant || variants[0];
 
   const cartItem = currentVariant ? cartItems.find((i) => i.variantId === currentVariant.id) : null;
   const quantityInCart = cartItem ? cartItem.quantity : 0;
@@ -40,7 +64,7 @@ export default function ProductCard({ product }) {
         productId: product.id,
         name: product.name,
         variantName: `${currentVariant.attributeName}: ${currentVariant.attributeValue}`,
-        price: Number(currentVariant.price),
+        price: Number(pricing?.price ?? currentVariant.price),
         quantity: 1,
         imageUrl: product.imageUrl,
         stock: currentVariant.stock

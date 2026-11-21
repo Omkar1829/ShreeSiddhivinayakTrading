@@ -28,29 +28,30 @@ export function calculatePricing(
     parsedVariantOffers = storeVariantOffers;
   }
 
-  // 1. Check direct per-variant offer configured in Product management
-  if (variantId && parsedVariantOffers[variantId]) {
-    const vOffer = parsedVariantOffers[variantId];
-    const offerMrp = Number(vOffer.mrp);
-    if (offerMrp > numPrice) {
-      const savings = offerMrp - numPrice;
-      const discountPercent = vOffer.discountPercent || Math.round((savings / offerMrp) * 100);
-      return {
-        price: numPrice,
-        originalPrice: numPrice,
-        mrp: offerMrp,
-        savings,
-        discountPercent,
-        hasDiscount: true,
-        offerTitle: vOffer.offerBadge || `${discountPercent}% OFF`
-      };
-    }
-  }
-
   // Check product-level offer badge in parsedVariantOffers
   let productBadge = null;
   if (productId && parsedVariantOffers[productId]?.offerBadge) {
     productBadge = parsedVariantOffers[productId].offerBadge;
+  }
+
+  // 1. Check direct per-variant offer configured in Product management
+  if (variantId && parsedVariantOffers[variantId]) {
+    const vOffer = parsedVariantOffers[variantId];
+    const offerPrice = Number(vOffer.price) > 0 ? Number(vOffer.price) : numPrice;
+    const offerMrp = Number(vOffer.mrp) > 0 ? Number(vOffer.mrp) : (Number(customMrp) || numPrice);
+    if (offerMrp > offerPrice) {
+      const savings = offerMrp - offerPrice;
+      const discountPercent = vOffer.discountPercent || Math.round((savings / offerMrp) * 100);
+      return {
+        price: offerPrice,
+        originalPrice: offerMrp,
+        mrp: offerMrp,
+        savings,
+        discountPercent,
+        hasDiscount: true,
+        offerTitle: vOffer.offerBadge || productBadge || `${discountPercent}% OFF`
+      };
+    }
   }
 
   // 2. Check active store promotions (store_offers)

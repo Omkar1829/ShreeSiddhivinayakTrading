@@ -192,17 +192,17 @@ export default function Catalog() {
     // Filter deals/discounts only
     if (dealsOnly) {
       list = list.filter((p) => {
-        const v = p.variants?.[0];
-        if (!v) return false;
-        const pricing = calculatePricing(
-          v.price,
-          v.mrp,
-          p.id,
-          storeSettings?.store_offers,
-          v.id,
-          storeSettings?.store_variant_offers
-        );
-        return pricing.hasDiscount && pricing.discountPercent > 0;
+        return (p.variants || []).some((v) => {
+          const pricing = calculatePricing(
+            v.price,
+            v.mrp,
+            p.id,
+            storeSettings?.store_offers,
+            v.id,
+            storeSettings?.store_variant_offers
+          );
+          return pricing.hasDiscount && pricing.discountPercent > 0;
+        });
       });
     }
 

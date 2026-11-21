@@ -175,17 +175,17 @@ export default function Home() {
   const discountedProducts = useMemo(() => {
     if (!allProducts.length) return [];
     const withDiscounts = allProducts.filter((product) => {
-      const v = product.variants?.[0];
-      if (!v) return false;
-      const pricing = calculatePricing(
-        v.price,
-        v.mrp,
-        product.id,
-        storeSettings?.store_offers,
-        v.id,
-        storeSettings?.store_variant_offers
-      );
-      return pricing.hasDiscount && pricing.discountPercent > 0;
+      return (product.variants || []).some((v) => {
+        const pricing = calculatePricing(
+          v.price,
+          v.mrp,
+          product.id,
+          storeSettings?.store_offers,
+          v.id,
+          storeSettings?.store_variant_offers
+        );
+        return pricing.hasDiscount && pricing.discountPercent > 0;
+      });
     });
 
     if (withDiscounts.length < 4) {
