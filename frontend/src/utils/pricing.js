@@ -1,14 +1,60 @@
 /**
  * Calculates pricing details for a product variant.
  * Strictly respects:
- * 1. Active store offers assigned to this product (from storeSettings.store_offers)
- * 2. Explicit custom MRP if provided in the database (customMrp > sellingPrice)
+ * 1. Direct per-variant offers configured in Product management (storeSettings.store_variant_offers)
+ * 2. Active store offers assigned to this product (from storeSettings.store_offers)
+ * 3. Explicit custom MRP if provided (customMrp > sellingPrice)
  * If NO offer and NO custom MRP exists, displays exact regular price with NO fake savings or random percentages.
  */
-export function calculatePricing(price, customMrp, productId, activeOffers = []) {
+export function calculatePricing(
+  price,
+  customMrp,
+  productId = null,
+  activeOffers = [],
+  variantId = null,
+  storeVariantOffers = null
+) {
   const numPrice = Number(price) || 0;
-  let parsedOffers = [];
 
+  // Parse storeVariantOffers if passed as JSON string
+  let parsedVariantOffers = {};
+  if (typeof storeVariantOffers === 'string') {
+    try {
+      parsedVariantOffers = JSON.parse(storeVariantOffers);
+    } catch (e) {
+      parsedVariantOffers = {};
+    }
+  } else if (typeof storeVariantOffers === 'object' && storeVariantOffers !== null) {
+    parsedVariantOffers = storeVariantOffers;
+  }
+
+  // 1. Check direct per-variant offer configured in Product management
+  if (variantId && parsedVariantOffers[variantId]) {
+    const vOffer = parsedVariantOffers[variantId];
+    const offerMrp = Number(vOffer.mrp);
+    if (offerMrp > numPrice) {
+      const savings = offerMrp - numPrice;
+      const discountPercent = vOffer.discountPercent || Math.round((savings / offerMrp) * 100);
+      return {
+        price: numPrice,
+        originalPrice: numPrice,
+        mrp: offerMrp,
+        savings,
+        discountPercent,
+        hasDiscount: true,
+        offerTitle: vOffer.offerBadge || `${discountPercent}% OFF`
+      };
+    }
+  }
+
+  // Check product-level offer badge in parsedVariantOffers
+  let productBadge = null;
+  if (productId && parsedVariantOffers[productId]?.offerBadge) {
+    productBadge = parsedVariantOffers[productId].offerBadge;
+  }
+
+  // 2. Check active store promotions (store_offers)
+  let parsedOffers = [];
   if (typeof activeOffers === 'string') {
     try {
       parsedOffers = JSON.parse(activeOffers);
@@ -19,7 +65,6 @@ export function calculatePricing(price, customMrp, productId, activeOffers = [])
     parsedOffers = activeOffers;
   }
 
-  // 1. Check if this product has an active offer
   let applicableOffer = null;
   if (productId && Array.isArray(parsedOffers)) {
     applicableOffer = parsedOffers.find(
@@ -67,7 +112,7 @@ export function calculatePricing(price, customMrp, productId, activeOffers = [])
     }
   }
 
-  // 2. Check if explicit MRP was provided and is higher than selling price
+  // 3. Check if explicit MRP was provided and is higher than selling price
   const numMrp = Number(customMrp);
   if (numMrp && numMrp > numPrice) {
     const savings = numMrp - numPrice;
@@ -79,11 +124,11 @@ export function calculatePricing(price, customMrp, productId, activeOffers = [])
       savings,
       discountPercent,
       hasDiscount: discountPercent > 0,
-      offerTitle: null
+      offerTitle: productBadge || null
     };
   }
 
-  // 3. Standard clean pricing (NO random or fake discounts!)
+  // 4. Standard clean pricing (NO random or fake discounts!)
   return {
     price: numPrice,
     originalPrice: numPrice,
@@ -91,6 +136,6 @@ export function calculatePricing(price, customMrp, productId, activeOffers = [])
     savings: 0,
     discountPercent: 0,
     hasDiscount: false,
-    offerTitle: null
+    offerTitle: productBadge || null
   };
 }

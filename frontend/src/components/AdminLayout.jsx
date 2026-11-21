@@ -251,10 +251,8 @@ export default function AdminLayout({ children }) {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { label: 'Orders', icon: ClipboardList, path: '/admin/orders' },
     { label: 'POS Billing', icon: Store, path: '/admin/pos' },
-    { label: 'Products', icon: ShoppingBag, path: '/admin/products' },
+    { label: 'Catalog & Stock Hub', icon: ShoppingBag, path: '/admin/products' },
     { label: 'Offers & Deals', icon: Tag, path: '/admin/offers' },
-    { label: 'Catalog Config', icon: FolderTree, path: '/admin/catalog' },
-    { label: 'Inventory', icon: Layers, path: '/admin/inventory' },
     { label: 'Customers', icon: Users, path: '/admin/customers' },
     ...(storeSettings?.audit_logs_enabled === 'true' ? [{ label: 'Audit Logs', icon: ShieldCheck, path: '/admin/audit-logs' }] : []),
     { label: 'Settings', icon: Settings, path: '/admin/settings' }

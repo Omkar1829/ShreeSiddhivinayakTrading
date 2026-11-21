@@ -47,7 +47,14 @@ export default function ProductDetails() {
 
   const currentCartQty = selectedVariant ? getCartQuantity(selectedVariant.id) : 0;
   const pricing = selectedVariant
-    ? calculatePricing(selectedVariant.price, selectedVariant.mrp, product?.id, storeSettings?.store_offers)
+    ? calculatePricing(
+        selectedVariant.price,
+        selectedVariant.mrp,
+        product?.id,
+        storeSettings?.store_offers,
+        selectedVariant.id,
+        storeSettings?.store_variant_offers
+      )
     : null;
 
   if (loading) {

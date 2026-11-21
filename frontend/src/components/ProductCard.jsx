@@ -19,7 +19,14 @@ export default function ProductCard({ product }) {
   const quantityInCart = cartItem ? cartItem.quantity : 0;
 
   const pricing = currentVariant
-    ? calculatePricing(currentVariant.price, currentVariant.mrp, product.id, storeSettings?.store_offers)
+    ? calculatePricing(
+        currentVariant.price,
+        currentVariant.mrp,
+        product.id,
+        storeSettings?.store_offers,
+        currentVariant.id,
+        storeSettings?.store_variant_offers
+      )
     : null;
   const isOutOfStock = !currentVariant || currentVariant.stock <= 0;
 

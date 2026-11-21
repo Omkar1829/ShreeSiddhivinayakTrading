@@ -193,7 +193,9 @@ export default function AdminPOS({ onClose }) {
         variant.price,
         variant.mrp,
         product.id,
-        storeSettings?.store_offers
+        storeSettings?.store_offers,
+        variant.id,
+        storeSettings?.store_variant_offers
       );
 
       return [
@@ -550,7 +552,14 @@ export default function AdminPOS({ onClose }) {
                   const defaultVar = variants[0];
                   const isOutOfStock = !defaultVar || variants.every((v) => v.stock <= 0);
                   const pricing = defaultVar
-                    ? calculatePricing(defaultVar.price, defaultVar.mrp, product.id, storeSettings?.store_offers)
+                    ? calculatePricing(
+                        defaultVar.price,
+                        defaultVar.mrp,
+                        product.id,
+                        storeSettings?.store_offers,
+                        defaultVar.id,
+                        storeSettings?.store_variant_offers
+                      )
                     : null;
 
                   return (
@@ -890,7 +899,9 @@ export default function AdminPOS({ onClose }) {
                   v.price,
                   v.mrp,
                   variantModalProduct.id,
-                  storeSettings?.store_offers
+                  storeSettings?.store_offers,
+                  v.id,
+                  storeSettings?.store_variant_offers
                 );
                 return (
                   <button
