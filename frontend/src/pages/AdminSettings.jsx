@@ -154,6 +154,22 @@ export default function AdminSettings() {
     }
   };
 
+  const handleDeleteQr = async () => {
+    setUpiQrUrl('');
+    setQrVerified(false);
+    try {
+      const res = await api.put('/api/store/settings', {
+        settings: [{ key: 'upi_qr_url', value: '' }]
+      });
+      if (res.data.success) {
+        dispatch(setSettings(res.data.settings));
+        toast.success('Store QR code removed successfully!');
+      }
+    } catch (err) {
+      toast.error('Failed to remove QR code from store settings.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -438,15 +454,15 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            {/* QR Photo Preview */}
-            {upiQrUrl && (
-              <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-200">
+            {/* QR Photo Preview or Empty State */}
+            {upiQrUrl ? (
+              <div className="flex items-center gap-4 bg-white p-3.5 rounded-xl border border-emerald-300 shadow-xs">
                 <div className="h-16 w-16 bg-gray-50 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center p-1 shrink-0">
                   <img src={upiQrUrl} alt="Store UPI QR" className="h-full w-full object-contain" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-xs font-bold text-gray-900 block truncate">
-                    Uploaded QR Ready for POS
+                    Uploaded Payment QR (Active on POS)
                   </span>
                   <span className="text-[10px] text-gray-500 font-mono block truncate">
                     {upiQrUrl}
@@ -454,15 +470,19 @@ export default function AdminSettings() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setUpiQrUrl('');
-                    setQrVerified(false);
-                  }}
-                  className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition"
-                  title="Remove QR Image"
+                  onClick={handleDeleteQr}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition border border-red-200 shrink-0"
+                  title="Delete QR Code from POS"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} />
+                  <span>Delete QR Code</span>
                 </button>
+              </div>
+            ) : (
+              <div className="p-3 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-center">
+                <span className="text-xs text-gray-500 font-medium">
+                  No QR code uploaded yet. Upload a verified payment QR above to display it on the POS counter terminal.
+                </span>
               </div>
             )}
           </div>

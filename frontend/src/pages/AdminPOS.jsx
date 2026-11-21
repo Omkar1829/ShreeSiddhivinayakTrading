@@ -51,9 +51,12 @@ export default function AdminPOS({ onClose }) {
   // Item: { variantId, productId, name, variantName, price, originalPrice, mrp, quantity, stock, imageUrl }
   const [cart, setCart] = useState([]);
 
+  // Mobile POS View Mode ('CATALOG' or 'REGISTER')
+  const [mobileTab, setMobileTab] = useState('CATALOG');
+
   // Customer Information
   const [customerName, setCustomerName] = useState('Counter Sale');
-  const [customerPhone, setCustomerPhone] = useState('9999999999');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [counterNote, setCounterNote] = useState('Counter Store Sale');
   const [paymentMethod, setPaymentMethod] = useState('CASH'); // CASH or UPI only
 
@@ -326,10 +329,6 @@ export default function AdminPOS({ onClose }) {
       toast.warning('Cannot complete an empty bill. Add products first.');
       return;
     }
-    if (!customerPhone || customerPhone.length < 7) {
-      toast.warning('Please provide a valid customer phone number.');
-      return;
-    }
     setCashTendered(subtotal.toString());
     setIsPaymentModalOpen(true);
   };
@@ -340,7 +339,7 @@ export default function AdminPOS({ onClose }) {
     try {
       const payload = {
         recipientName: customerName.trim() || 'Counter Sale',
-        recipientPhone: customerPhone.trim() || '9999999999',
+        recipientPhone: customerPhone.trim() || storeSettings?.phone_number || 'Counter Sale',
         deliveryAddress: counterNote.trim() || 'Counter Store Sale',
         paymentMethod: paymentMethod === 'UPI' ? 'QR_PAYMENT' : 'CASH',
         items: cart.map((item) => ({
@@ -465,10 +464,48 @@ export default function AdminPOS({ onClose }) {
         </div>
       </header>
 
+      {/* MOBILE SEGMENTED VIEW SWITCHER (lg:hidden) */}
+      <div className="lg:hidden flex border-b border-gray-200 bg-white shrink-0 shadow-xs z-20">
+        <button
+          type="button"
+          onClick={() => setMobileTab('CATALOG')}
+          className={`flex-1 py-3 text-xs font-black text-center border-b-2 transition flex items-center justify-center gap-1.5 ${
+            mobileTab === 'CATALOG'
+              ? 'border-emerald-800 text-emerald-800 bg-emerald-50/60'
+              : 'border-transparent text-gray-500 hover:text-gray-800'
+          }`}
+        >
+          <Package size={15} />
+          <span>Product Catalog ({filteredProducts.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab('REGISTER')}
+          className={`flex-1 py-3 text-xs font-black text-center border-b-2 transition flex items-center justify-center gap-1.5 ${
+            mobileTab === 'REGISTER'
+              ? 'border-emerald-800 text-emerald-800 bg-emerald-50/60'
+              : 'border-transparent text-gray-500 hover:text-gray-800'
+          }`}
+        >
+          <ShoppingCart size={15} />
+          <span>Bill Register ({totalItemsCount})</span>
+          {totalItemsCount > 0 && (
+            <span className="rounded-full bg-emerald-800 text-white text-[10px] font-bold px-1.5 py-0.2">
+              ₹{subtotal.toFixed(0)}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* 2. MAIN POS WORKSPACE: 2-PANE LAYOUT */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* LEFT / CENTER PANE: Product Catalog & Fast Filtering */}
-        <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden border-r border-gray-200">
+        <div
+          className={`flex-1 flex-col bg-gray-50 overflow-hidden border-r border-gray-200 ${
+            mobileTab === 'CATALOG' ? 'flex' : 'hidden lg:flex'
+          }`}
+        >
           {/* Fast Search & Barcode Bar */}
           <div className="p-4 bg-white border-b border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3 items-center">
             <form onSubmit={handleBarcodeSubmit} className="relative flex-1 w-full">
@@ -637,10 +674,46 @@ export default function AdminPOS({ onClose }) {
               </div>
             )}
           </div>
+
+          {/* Mobile Bottom Floating Action Bar: Go to Register */}
+          {totalItemsCount > 0 && (
+            <div className="lg:hidden p-3 bg-white border-t border-gray-200 shadow-2xl flex items-center justify-between shrink-0 z-20">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase font-black text-gray-500 tracking-wider">
+                  Active Bill
+                </span>
+                <span className="text-sm font-black text-emerald-800 leading-tight">
+                  {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'} • ₹{subtotal.toFixed(2)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileTab('REGISTER')}
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 text-xs font-black shadow-md active:scale-95 transition"
+              >
+                <span>View Bill & Pay</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* RIGHT PANE: Multi-Product Active Bill Register */}
-        <div className="w-full lg:w-[460px] xl:w-[500px] flex flex-col bg-white shadow-2xl border-l border-gray-200 shrink-0 h-full">
+        <div
+          className={`w-full lg:w-[460px] xl:w-[500px] flex-col bg-white shadow-2xl border-l border-gray-200 shrink-0 h-full ${
+            mobileTab === 'REGISTER' ? 'flex' : 'hidden lg:flex'
+          }`}
+        >
+          {/* Mobile Back Button to Catalog */}
+          <button
+            type="button"
+            onClick={() => setMobileTab('CATALOG')}
+            className="lg:hidden flex items-center gap-1 text-xs font-bold text-emerald-800 px-3 py-2 bg-emerald-50/80 border-b border-emerald-200 hover:bg-emerald-100 transition"
+          >
+            <ArrowLeft size={14} />
+            <span>← Back to Products (+ Add More Items)</span>
+          </button>
+
           {/* Register Top Bar */}
           <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -690,7 +763,7 @@ export default function AdminPOS({ onClose }) {
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ''))}
-                  placeholder="9999999999"
+                  placeholder="Phone (optional)"
                   className="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg font-semibold text-gray-800 focus:outline-none focus:border-emerald-700"
                 />
               </div>
@@ -1046,27 +1119,44 @@ export default function AdminPOS({ onClose }) {
               {paymentMethod === 'UPI' && (
                 <div className="space-y-4 text-center">
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col items-center">
-                    {/* Display Store's Uploaded QR photo or Dynamic QR Code */}
+                    {/* Display Store's Uploaded QR photo if available */}
                     {storeSettings?.upi_qr_url ? (
-                      <div className="h-56 w-56 bg-white p-2 rounded-xl shadow-xs border border-gray-200 flex items-center justify-center mb-2">
-                        <img
-                          src={storeSettings.upi_qr_url}
-                          alt="Store UPI QR Standee"
-                          className="h-full w-full object-contain"
-                        />
-                      </div>
+                      <>
+                        <div className="h-56 w-56 bg-white p-2 rounded-xl shadow-xs border border-gray-200 flex items-center justify-center mb-2">
+                          <img
+                            src={storeSettings.upi_qr_url}
+                            alt="Store UPI QR Standee"
+                            className="h-full w-full object-contain"
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-gray-700 block mt-1">
+                          UPI ID: <strong className="text-emerald-700 font-mono">{storeSettings.upi_id || upiId}</strong>
+                        </span>
+                        <span className="text-[11px] text-gray-500 mt-0.5">
+                          Customer can scan using Google Pay, PhonePe, Paytm, or BHIM
+                        </span>
+                      </>
                     ) : (
-                      <div className="p-3 bg-white rounded-xl shadow-xs border border-gray-200 mb-2">
-                        <QRCodeSVG value={upiString} size={180} level="M" />
+                      <div className="p-4 text-center max-w-xs space-y-2">
+                        <div className="h-14 w-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-1">
+                          <QrCode size={28} />
+                        </div>
+                        <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight">
+                          No Store QR Code Uploaded
+                        </h4>
+                        <p className="text-[11px] text-gray-500 leading-relaxed">
+                          You haven't uploaded your shop UPI payment QR standee in Store Settings yet.
+                        </p>
+                        {storeSettings?.upi_id ? (
+                          <div className="pt-1">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Pay to Store UPI ID:</span>
+                            <span className="font-mono text-xs font-black text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-gray-200 inline-block mt-0.5">
+                              {storeSettings.upi_id}
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
                     )}
-
-                    <span className="text-xs font-bold text-gray-700 block mt-1">
-                      UPI ID: <strong className="text-emerald-700 font-mono">{upiId}</strong>
-                    </span>
-                    <span className="text-[11px] text-gray-500 mt-0.5">
-                      Customer can scan using Google Pay, PhonePe, Paytm, or BHIM
-                    </span>
                   </div>
 
                   {/* Action: UPI Payment Collected Button */}
